@@ -106,9 +106,10 @@ int main() {
     x(1) = 0.0;
     x(2) = 0.0;
 
-    MyFunctor<QuadraticEvaluationFunction> functor(measuredValues, m, N);
+    using QuadraticFunctor = MyFunctor<QuadraticEvaluationFunction>;
+    QuadraticFunctor functor(measuredValues, m, N);
 
-    Eigen::LevenbergMarquardt<MyFunctor<QuadraticEvaluationFunction>, float> lm(functor);
+    Eigen::LevenbergMarquardt<QuadraticFunctor, float> lm(functor);
     int result = lm.minimize(x);
 
     std::cout << "Opt result" << std::endl;
