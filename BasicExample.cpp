@@ -8,11 +8,14 @@
 class MyFunctor
 {
     Eigen::MatrixXf measuredValues;
-    int m;
-    int n;
+    const int m;
+    const int n;
 
 
 public:
+    MyFunctor(Eigen::MatrixXf measuredValues, const int m, const int n):
+        measuredValues(measuredValues), m(m), n(n)
+    {}
 
     int operator()(const Eigen::VectorXf &x, Eigen::VectorXf &fvec) const
     {
@@ -64,13 +67,41 @@ private:
 };
 
 const int N = 3;
-const int M = 5;
 
 int main() {
-    std::ifstream
+    std::ifstream infile("measurements.txt");
 
-    MyFunctor functor;
+    if (!infile) {
+        std::cout << "measurements.txt could not be read" << std::endl;
+        return -1;
+    }
+
+    std::vector<float> xValues;
+    std::vector<float> yValues;
+
+    std::string currLine;
+    while(getline(infile, currLine)) {
+        std::istringstream ss(currLine);
+        float x, y;
+        ss >> x >> y;
+        xValues.push_back(x);
+        yValues.push_back(y);
+    }
+
+    int m = xValues.size();
+
+    Eigen::MatrixXf measuredValues(m, 2);
+    for (int i = 0; i < m; i++) {
+        measuredValues(i, 0) = xValues[i];            
+        measuredValues(i, 1) = yValues[i];
+    }
+
     Eigen::VectorXf x(N);
+    x(0) = 0.0;
+    x(1) = 0.0;
+    x(2) = 0.0;
+
+    MyFunctor functor(measuredValues, m, N);
 
     Eigen::LevenbergMarquardt<MyFunctor, float> lm(functor);
     int result = lm.minimize(x);

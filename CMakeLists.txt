@@ -6,3 +6,5 @@ include_directories(${EIGEN3_INCLUDE_DIR})
 
 add_executable (BasicExample BasicExample.cpp)
 target_link_libraries (BasicExample Eigen3::Eigen)
+
+configure_file(measurements.txt measurements.txt COPYONLY)
