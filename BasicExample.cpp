@@ -7,16 +7,17 @@
 
 
 struct QuadraticEvaluationFunction {
-    float operator()(const Eigen::VectorXf &params, float x) const
+    float operator()(const Eigen::VectorXf &params, const Eigen::VectorXf &x) const
     {
+        float xf = x(0);
         float a = params(0);
         float b = params(1);
         float c = params(2);
-        return a * x * x + b * x + c; 
+        return a * xf * xf + b * xf + c; 
     }
 };
 
-typedef float (*EvaluationFunction)(const Eigen::VectorXf, float);
+typedef float (*EvaluationFunction)(const Eigen::VectorXf, const Eigen::VectorXf);
 
 template<typename EvaluationFunction>
 class MyFunctor
@@ -37,7 +38,11 @@ public:
         for (int i = 0; i < values(); i++) {
             float xValue = measuredValues(i, 0);
             float yValue = measuredValues(i, 1);
-            float residual = yValue - evalFunction(params, xValue);
+
+            Eigen::VectorXf xVector(1);
+            xVector(0) = xValue;
+
+            float residual = yValue - evalFunction(params, xVector);
             fvec(i) = residual;
         }
         return 0;
