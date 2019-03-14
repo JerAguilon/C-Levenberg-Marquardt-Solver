@@ -64,6 +64,8 @@ public:
             Eigen::VectorXf fvecDiff(values());
             fvecDiff = (fVecPlus - fVecMinus) / (2 * epsilon);
 
+            // We assign a block of size Mx1 starting at 0, i
+            // TODO(jeremy): make this generic to support vector functions
             fjacobian.block<M, 1>(0, i) = fvecDiff;
         }
         return 0;
