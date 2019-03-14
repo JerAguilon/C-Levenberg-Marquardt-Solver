@@ -64,6 +64,8 @@ public:
             Eigen::VectorXf fvecDiff(values());
             fvecDiff = (fVecPlus - fVecMinus) / (2 * epsilon);
 
+            // Assign a block of size Mx1 starting at (0,i)
+            // TODO(jeremy): Add support for vector functions
             fjacobian.block<M, 1>(0, i) = fvecDiff;
         }
         return 0;
@@ -107,7 +109,7 @@ int main() {
     x(1) = 0.0;
     x(2) = 0.0;
 
-    using QuadraticFunctor = MyFunctor<100, N, QuadraticEvaluationFunction>;
+    using QuadraticFunctor = MyFunctor<M, N, QuadraticEvaluationFunction>;
     QuadraticFunctor functor(measuredValues);
 
     Eigen::LevenbergMarquardt<QuadraticFunctor, float> lm(functor);
