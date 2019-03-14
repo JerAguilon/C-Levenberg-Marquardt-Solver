@@ -13,7 +13,7 @@ struct QuadraticEvaluationFunction {
         float a = params(0);
         float b = params(1);
         float c = params(2);
-        return a * xf * xf + b * xf + c; 
+        return a * xf * xf + b * xf + c;
     }
 };
 
@@ -47,7 +47,7 @@ public:
     }
 
     int df(const Eigen::VectorXf &x, Eigen::MatrixXf &fjacobian) {
-        float epsilon = 1e-5f;        
+        float epsilon = 1e-5f;
 
         for (int i = 0; i < x.size(); i++) {
             Eigen::VectorXf xPlus(x);
@@ -71,7 +71,7 @@ public:
         return 0;
     }
                 int values() const { return M; }
-    
+
     int inputs() const { return N; }
 };
 
@@ -100,7 +100,7 @@ int main() {
 
     Eigen::MatrixXf measuredValues(M, 2);
     for (int i = 0; i < M; i++) {
-        measuredValues(i, 0) = xValues[i];            
+        measuredValues(i, 0) = xValues[i];
         measuredValues(i, 1) = yValues[i];
     }
 
