@@ -6,6 +6,8 @@
 #include <unsupported/Eigen/NonLinearOptimization>
 
 
+typedef float (*EvaluationFunction)(const Eigen::VectorXf, const Eigen::VectorXf);
+
 struct QuadraticEvaluationFunction {
     float operator()(const Eigen::VectorXf &params, const Eigen::VectorXf &x) const
     {
@@ -17,19 +19,15 @@ struct QuadraticEvaluationFunction {
     }
 };
 
-typedef float (*EvaluationFunction)(const Eigen::VectorXf, const Eigen::VectorXf);
-
-template<typename EvaluationFunction>
+template<unsigned int M, unsigned int N, typename EvaluationFunction>
 class MyFunctor
 {
     Eigen::MatrixXf measuredValues;
-    const int m;
-    const int n;
     const EvaluationFunction evalFunction;
 
 public:
-    MyFunctor(Eigen::MatrixXf measuredValues, const int m, const int n):
-        measuredValues(measuredValues), m(m), n(n), evalFunction(EvaluationFunction())
+    MyFunctor(Eigen::MatrixXf measuredValues):
+        measuredValues(measuredValues), evalFunction(EvaluationFunction())
     {}
 
     int operator()(const Eigen::VectorXf &params, Eigen::VectorXf &fvec) const
@@ -66,17 +64,18 @@ public:
             Eigen::VectorXf fvecDiff(values());
             fvecDiff = (fVecPlus - fVecMinus) / (2 * epsilon);
 
-            fjacobian.block(0, i, values(), 1) = fvecDiff;
+            fjacobian.block<M, 1>(0, i) = fvecDiff;
         }
         return 0;
     }
 
-    int values() const { return m; }
+    int values() const { return M; }
 
-    int inputs() const { return n; }
+    int inputs() const { return N; }
 };
 
-const int N = 3;
+const int M = 100; // Number of measurements
+const int N = 3; // Number of parameters: a, b, and c
 
 int main() {
     std::ifstream infile("measurements.txt");
@@ -98,10 +97,9 @@ int main() {
         yValues.push_back(y);
     }
 
-    int m = xValues.size();
 
-    Eigen::MatrixXf measuredValues(m, 2);
-    for (int i = 0; i < m; i++) {
+    Eigen::MatrixXf measuredValues(M, 2);
+    for (int i = 0; i < M; i++) {
         measuredValues(i, 0) = xValues[i];            
         measuredValues(i, 1) = yValues[i];
     }
@@ -111,8 +109,8 @@ int main() {
     x(1) = 0.0;
     x(2) = 0.0;
 
-    using QuadraticFunctor = MyFunctor<QuadraticEvaluationFunction>;
-    QuadraticFunctor functor(measuredValues, m, N);
+    using QuadraticFunctor = MyFunctor<100, N, QuadraticEvaluationFunction>;
+    QuadraticFunctor functor(measuredValues);
 
     Eigen::LevenbergMarquardt<QuadraticFunctor, float> lm(functor);
     int result = lm.minimize(x);
