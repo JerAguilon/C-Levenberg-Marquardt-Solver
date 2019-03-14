@@ -6,8 +6,6 @@
 #include <unsupported/Eigen/NonLinearOptimization>
 
 
-typedef float (*EvaluationFunction)(const Eigen::VectorXf, const Eigen::VectorXf);
-
 struct QuadraticEvaluationFunction {
     float operator()(const Eigen::VectorXf &params, const Eigen::VectorXf &x) const
     {
@@ -18,6 +16,8 @@ struct QuadraticEvaluationFunction {
         return a * xf * xf + b * xf + c; 
     }
 };
+
+typedef float (*EvaluationFunction)(const Eigen::VectorXf, const Eigen::VectorXf);
 
 template<unsigned int M, unsigned int N, typename EvaluationFunction>
 class MyFunctor
@@ -64,21 +64,17 @@ public:
             Eigen::VectorXf fvecDiff(values());
             fvecDiff = (fVecPlus - fVecMinus) / (2 * epsilon);
 
-            // We assign a block of size Mx1 starting at 0, i
-            // TODO(jeremy): make this generic to support vector functions
             fjacobian.block<M, 1>(0, i) = fvecDiff;
         }
         return 0;
     }
-
-    int values() const { return M; }
-
+                int values() const { return M; }
+    
     int inputs() const { return N; }
 };
 
 const int M = 100; // Number of measurements
-const int N = 3; // Number of parameters: a, b, and c
-
+const int N = 3; // Number of parameters: a, b, c
 int main() {
     std::ifstream infile("measurements.txt");
 
