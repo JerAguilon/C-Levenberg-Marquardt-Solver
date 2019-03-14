@@ -5,30 +5,40 @@
 
 #include <unsupported/Eigen/NonLinearOptimization>
 
+
+struct QuadraticEvaluationFunction {
+    float operator()(const Eigen::VectorXf &params, float x) const
+    {
+        float a = params(0);
+        float b = params(1);
+        float c = params(2);
+        return a * x * x + b * x + c; 
+    }
+};
+
+typedef float (*EvaluationFunction)(const Eigen::VectorXf, float);
+
+template<typename EvaluationFunction>
 class MyFunctor
 {
     Eigen::MatrixXf measuredValues;
     const int m;
     const int n;
-
+    const EvaluationFunction evalFunction;
 
 public:
     MyFunctor(Eigen::MatrixXf measuredValues, const int m, const int n):
-        measuredValues(measuredValues), m(m), n(n)
+        measuredValues(measuredValues), m(m), n(n), evalFunction(EvaluationFunction())
     {}
 
-    int operator()(const Eigen::VectorXf &x, Eigen::VectorXf &fvec) const
+    int operator()(const Eigen::VectorXf &params, Eigen::VectorXf &fvec) const
     {
-        float aParam = x(0);
-        float bParam = x(1);
-        float cParam = x(2);
 
         for (int i = 0; i < values(); i++) {
             float xValue = measuredValues(i, 0);
             float yValue = measuredValues(i, 1);
-            
-            fvec(i) = getResidual(aParam, bParam, cParam, xValue, yValue);
-
+            float residual = yValue - evalFunction(params, xValue);
+            fvec(i) = residual;
         }
         return 0;
     }
@@ -59,11 +69,6 @@ public:
     int values() const { return m; }
 
     int inputs() const { return n; }
-
-private:
-    float getResidual(float a, float b, float c, float x, float y) const {
-        return y - (a * x * x + b * x + c);
-    }
 };
 
 const int N = 3;
@@ -101,9 +106,9 @@ int main() {
     x(1) = 0.0;
     x(2) = 0.0;
 
-    MyFunctor functor(measuredValues, m, N);
+    MyFunctor<QuadraticEvaluationFunction> functor(measuredValues, m, N);
 
-    Eigen::LevenbergMarquardt<MyFunctor, float> lm(functor);
+    Eigen::LevenbergMarquardt<MyFunctor<QuadraticEvaluationFunction>, float> lm(functor);
     int result = lm.minimize(x);
 
     std::cout << "Opt result" << std::endl;
