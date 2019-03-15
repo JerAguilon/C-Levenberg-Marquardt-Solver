@@ -1,10 +1,7 @@
 #include <iostream>
 #include <fstream>
 
-#include <Eigen/Eigen>
-
-#include <unsupported/Eigen/NonLinearOptimization>
-
+#include "solver/GTSAMSolver.h"
 
 struct QuadraticEvaluationFunction {
     float operator()(const Eigen::VectorXf &params, const Eigen::VectorXf &x) const
