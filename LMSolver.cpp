@@ -101,10 +101,16 @@ int main() {
         measuredValues(i, 1) = yValues[i];
     }
 
-    Eigen::VectorXf x(N);
-    x(0) = 0.0;
-    x(1) = 0.0;
-    x(2) = 0.0;
+    #define EIGEN_NO_MALLOC = 1
+    using ParamVector = Eigen::Matrix<float, -1, 1, 0, -1, 1>;
+    ParamVector x;
+    float mydata[N]; // No mallocs!
+    mydata[0] = 0;
+    mydata[1] = 1;
+    mydata[2] = 2;
+    float* data_ptr = mydata;
+    x = Eigen::Map<ParamVector, Eigen::Unaligned>(data_ptr, N, 1);
+    #undef EIGEN_NO_MALLOC
 
     using QuadraticFunctor = MyFunctor<M, N, QuadraticEvaluationFunction>;
     QuadraticFunctor functor(measuredValues);
