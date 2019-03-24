@@ -2,6 +2,7 @@
 #include <fstream>
 
 #include "solver/GTSAMSolver.h"
+#include "prototype/MyGTSAMSolver.h"
 
 struct QuadraticEvaluationFunction {
     float operator()(const Eigen::VectorXf &params, const Eigen::VectorXf &x) const
