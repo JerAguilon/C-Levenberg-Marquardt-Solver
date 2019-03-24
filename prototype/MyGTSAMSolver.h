@@ -12,14 +12,14 @@ public:
     double parameters[NumParameters];
 
     MyGTSAMSolver(
-        double (*evaluationFunction)(double *, double),
-        double (*gradientFunction)(double *, double),
-        double initialParams[NumParameters]
+        double (*evaluationFunction)(double *parameters, double x),
+        double (*gradientFunction)(double *gradient, double *parameters, double x),
+        double (&initialParams)[NumParameters]
     );
 
     bool fit(
-        double x[NumMeasurements],
-        double y[NumMeasurements]
+        double (&x)[NumMeasurements],
+        double (&y)[NumMeasurements]
     );
 
 private:
@@ -29,9 +29,17 @@ private:
     double derivative[NumParameters],
            gradient[NumParameters];
 
-    double newParameters[NumParameters];
+    double newParameters[NumParameters],
+           delta[NumParameters];
 
-    double getError();
+    double getError(
+        double (&parameters)[NumParameters],
+        double (&x)[NumMeasurements],
+        double (&y)[NumMeasurements])
+    );
+
+    bool getCholeskyDecomposition();
+    void solveCholesky();
 };
 
 #endif
