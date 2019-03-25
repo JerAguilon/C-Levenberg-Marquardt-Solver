@@ -1,5 +1,6 @@
 #include <iostream>
 #include <algorithm>
+#include <math.h>
 
 #include "MyGTSAMSolver.h"
 
@@ -53,6 +54,7 @@ bool MyGTSAMSolver<NumParameters, NumMeasurements>::fit() {
 
     int iteration;
     for (iteration=0; iteration < maxIterations; iteration++) {
+        std::cout << "Current Error: " << currentError << std::endl;
 
         for (int i = 0; i < NumParameters; i++) {
             derivative[i] = 0.0;
@@ -113,15 +115,56 @@ bool MyGTSAMSolver<NumParameters, NumMeasurements>::fit() {
 
         if (!illConditioned && (-deltaError < targetDeltaError)) break;
     }
+    return true;
 }
 
 template<int NumParameters, int NumMeasurements>
 bool MyGTSAMSolver<NumParameters, NumMeasurements>::getCholeskyDecomposition() {
+    int i, j, k;
+    double sum;
 
+    int n = NumParameters;
 
+    for (i = 0; i < n; i++) {
+        for (j = 0; j < i; j++) {
+            sum = 0;
+            for (k = 0; k < j; k++) {
+                sum += choleskyDecomposition[i][k] * choleskyDecomposition[j][k];
+            }
+            choleskyDecomposition[i][j] = (hessian[i][j] - sum) / choleskyDecomposition[j][j];
+        }
+
+        sum = 0;
+        for (k = 0; k < i; k++) {
+            sum += choleskyDecomposition[i][k] * choleskyDecomposition[i][k];
+        }
+        sum = hessian[i][i] - sum;
+        if (sum < TOL) return true;
+        choleskyDecomposition[i][i] = sqrt(sum);
+    }
+    return 0;
 }
 
 template<int NumParameters, int NumMeasurements>
 void MyGTSAMSolver<NumParameters, NumMeasurements>::solveCholesky() {
-    std::cout << "FOO";
+    int i, j;
+    double sum;
+
+    int n = NumParameters;
+
+    for (i = 0; i < n; i++) {
+        sum = 0;
+        for (j = 0; j < i; j++) {
+            sum += choleskyDecomposition[i][j] * delta[j];
+        }
+        delta[j] = (derivative[i] - sum) / choleskyDecomposition[i][i];
+    }
+
+    for (i = n - 1; i >= 0; i--) {
+        sum = 0;
+        for (j = i + 1; j < n; j++) {
+            sum += choleskyDecomposition[j][i] * delta[j];
+        }
+        delta[i] = (delta[i] - sum) / choleskyDecomposition[i][i];
+    }
 }
