@@ -55,6 +55,8 @@ bool MyGTSAMSolver<NumParameters, NumMeasurements>::fit() {
     int iteration;
     for (iteration=0; iteration < maxIterations; iteration++) {
         std::cout << "Current Error: " << currentError << std::endl;
+        std::cout << "Mean Error: " << currentError / NumMeasurements << std::endl << std::endl;
+
 
         for (int i = 0; i < NumParameters; i++) {
             derivative[i] = 0.0;
