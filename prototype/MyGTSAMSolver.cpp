@@ -1,29 +1,47 @@
+#include <iostream>
 #include <algorithm>
 
-#include "prototype/MyGTSAMSolver.h"
+#include "MyGTSAMSolver.h"
 
 template<int NumParameters, int NumMeasurements>
 MyGTSAMSolver<NumParameters, NumMeasurements>::MyGTSAMSolver(
-    double (*evaluationFunction)(double *parameters, double x),
-    double (*gradientFunction)(double *gradient, double *parameters, double x),
-    double (&initialParams)[NumParameters]
+    EvaluationFunction evaluationFunction,
+    GradientFunction gradientFunction,
+    double (&initialParams)[NumParameters],
+    double (&x)[NumMeasurements],
+    double (&y)[NumMeasurements]
 ):
     evaluationFunction(evaluationFunction),
     gradientFunction(gradientFunction),
-    parameters{initialParams},
+    parameters(initialParams),
+    x(x),
+    y(y),
     hessian{},
     choleskyDecomposition{},
     derivative{},
     gradient{},
     delta{},
-    newParameters{},
+    newParameters{}
 {}
 
 template<int NumParameters, int NumMeasurements>
-bool MyGTSAMSolver<NumParameters, NumMeasurements>::fit(
+double MyGTSAMSolver<NumParameters, NumMeasurements>::getError(
+    double (&parameters)[NumParameters],
     double (&x)[NumMeasurements],
     double (&y)[NumMeasurements])
 {
+    double residual;
+    double error = 0;
+
+    for (int i = 0; i < NumMeasurements; i++) {
+        residual = evaluationFunction(parameters, x[i]) - y[i];
+        error += residual * residual;
+    }
+    return error;
+}
+
+template<int NumParameters, int NumMeasurements>
+bool MyGTSAMSolver<NumParameters, NumMeasurements>::fit() {
     // TODO: make these input arguments
     int maxIterations = 10000;
     double lambda = 0.1;
@@ -35,21 +53,29 @@ bool MyGTSAMSolver<NumParameters, NumMeasurements>::fit(
 
     int iteration;
     for (iteration=0; iteration < maxIterations; iteration++) {
-        std::fill(derivative[0], derivative[0] + NumParameters, 0);
-        std::fill(hessian[0], hessian[0] + NumParameters * NumParameters, 0);
+
+        for (int i = 0; i < NumParameters; i++) {
+            derivative[i] = 0.0;
+        }
+
+        for (int i = 0; i < NumParameters; i++) {
+            for (int j = 0; j < NumMeasurements; j++) {
+                hessian[i][j] = 0.0;
+            }
+        }
 
         // Build out the jacobian and the hessian matrices
         for (int m = 0; m < NumMeasurements; m++) {
-            double x = x[m];
-            double y = y[m];
-            gradientFunction(gradient, parameters, x);
+            double currX = x[m];
+            double currY = y[m];
+            gradientFunction(gradient, parameters, currX);
 
             for (int i = 0; i < NumParameters; i++) {
                 // J_i = residual * gradient
-                d[i] += (y - evaluationFunction(parameters, x)) * g[i];
+                derivative[i] += (currY - evaluationFunction(parameters, currX)) * gradient[i];
                 // H = J^T * J
                 for (int j = 0; j <=i; j++) {
-                    hessian[i][j] += g[i]*g[j];
+                    hessian[i][j] += gradient[i]*gradient[j];
                 }
             }
         }
@@ -72,8 +98,8 @@ bool MyGTSAMSolver<NumParameters, NumMeasurements>::fit(
             }
 
             if (illConditioned) {
-                multFactor = (1 + lambda * up) / (1 + lambda);
-                lambda *= up;
+                multFactor = (1 + lambda * upFactor) / (1 + lambda);
+                lambda *= upFactor;
                 iteration++;
             }
         }
@@ -83,24 +109,19 @@ bool MyGTSAMSolver<NumParameters, NumMeasurements>::fit(
         }
 
         currentError = newError;
-        lambda *= down;
+        lambda *= downFactor;
 
         if (!illConditioned && (-deltaError < targetDeltaError)) break;
     }
 }
 
 template<int NumParameters, int NumMeasurements>
-double MyGTSAMSolver<NumParameters, NumMeasurements>::getError(
-    double (&parameters)[NumParameters],
-    double (&x)[NumMeasurements],
-    double (&y)[NumMeasurements])
-{
-    double residual;
-    double error = 0;
+bool MyGTSAMSolver<NumParameters, NumMeasurements>::getCholeskyDecomposition() {
 
-    for (int i = 0; i < NumMeasurements; i++) {
-        residual = evaluationFunction(parameters, x[i]) - y[i];
-        error += residual * residual;
-    }
-    return error;
+
+}
+
+template<int NumParameters, int NumMeasurements>
+void MyGTSAMSolver<NumParameters, NumMeasurements>::solveCholesky() {
+    std::cout << "FOO";
 }
