@@ -10,6 +10,10 @@
 const int M = 100; // Number of measurements
 const int N = 3; // Number of parameters: a, b, c
 
+
+/**
+ * Simple quadratic evaluation function given a point x and its parameters
+ */
 double evaluationFunction(double *params, double x) {
     float a = params[0];
     float b = params[1];
@@ -17,6 +21,13 @@ double evaluationFunction(double *params, double x) {
     return a * x * x + b * x + c;
 }
 
+
+/**
+ * Simple gradient function for an estimator. For demo purposes,
+ * the gradients are not calculated analytically. Of course, you
+ * can get significant runtime benefits by implementing your gradient
+ * analytically.
+ */
 void gradientFunction(double *gradient, double *params, double x) {
     float epsilon = 1e-4f;
 
@@ -42,6 +53,12 @@ void gradientFunction(double *gradient, double *params, double x) {
 }
 
 
+
+/**
+ * Generates N (N=3 for this demo) random parameters and uses them to create
+ * M (M=100) quadratic points with some Gaussian noise. Fiddle with the noise
+ * and notice how the final error increases when the noise increases
+ */
 void generatePoints(double (&xValues)[M], double (&yValues)[M]) {
     unsigned seed = std::chrono::system_clock::now().time_since_epoch().count();
 
@@ -65,20 +82,24 @@ void generatePoints(double (&xValues)[M], double (&yValues)[M]) {
 }
 
 int main() {
+
+    // Generate random points to fit
     double xValues[M] = {0};
     double yValues[M] = {0};
-
-
     generatePoints(xValues, yValues);
 
 
+    // initialize some random parameters for a quadratic
     double initialParams[N] = {-1.99854, 1, 7.90917};
 
+
+    // Define pointers towards our evaluation function and gradient function
     EvaluationFunction e = &evaluationFunction;
     GradientFunction g = &gradientFunction;
 
+    // Initialize the solver and fit, which updates initialParams
+    // to have the final result
     MyGTSAMSolver<N, M> mysolver(e, g, initialParams, xValues, yValues);
-
     mysolver.fit();
 
     std::cout << "Opt result" << std::endl;
