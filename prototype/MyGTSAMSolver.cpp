@@ -63,7 +63,7 @@ bool MyGTSAMSolver<NumParameters, NumMeasurements>::fit() {
         }
 
         for (int i = 0; i < NumParameters; i++) {
-            for (int j = 0; j < NumMeasurements; j++) {
+            for (int j = 0; j < NumParameters; j++) {
                 hessian[i][j] = 0.0;
             }
         }
