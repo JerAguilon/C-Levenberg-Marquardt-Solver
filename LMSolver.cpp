@@ -5,8 +5,7 @@
 #include <random>
 #include <utility>
 
-#include "solver/GTSAMSolver.h"
-#include "prototype/MyGTSAMSolver.cpp"
+#include "prototype/MyGTSAMSolver.h"
 
 const int M = 1000; // Number of measurements
 const int N = 3; // Number of parameters: a, b, c

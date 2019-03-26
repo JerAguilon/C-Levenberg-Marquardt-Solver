@@ -5,13 +5,15 @@ find_package (Eigen3 3.3 REQUIRED NO_MODULE)
 include_directories(${EIGEN3_INCLUDE_DIR})
 message(${EIGEN3_INCLUDE_DIR})
 
+file(GLOB src_files
+    "LMSolver.cpp"
+)
+message(${src_files})
 
 include_directories(prototype/)
-link_directories(prototype/)
-add_subdirectory(prototype/)
 
-add_executable(${PROJECT_NAME} LMSolver.cpp)
+add_executable(${PROJECT_NAME} ${src_files})
 
-target_link_libraries(${PROJECT_NAME} prototype Eigen3::Eigen)
+target_link_libraries(${PROJECT_NAME} Eigen3::Eigen)
 
 configure_file(measurements.txt measurements.txt COPYONLY)
