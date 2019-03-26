@@ -22,11 +22,10 @@ public:
     typedef Eigen::Matrix<double, RowsParams, 1> XRow;
 
     typedef double (*EvaluationFunction)(ParamMatrix params, XRow x);
-    typedef void (*GradientFunction)(double *gradient, ParamMatrix params, XRow x);
+    typedef void (*GradientFunction)(ParamMatrix gradient, ParamMatrix params, XRow x);
 
     EvaluationFunction evaluationFunction;
     GradientFunction gradientFunction;
-
 
     MyGTSAMSolver(
         EvaluationFunction evaluationFunction,
@@ -39,18 +38,21 @@ public:
     bool fit();
 
 private:
+    // Used internally for Hessians, and Cholesky Triangle Matrices
+    typedef Eigen::Map<Eigen::Matrix<double, RowsParams, RowsParams, Eigen::RowMajor>> SquareParamMatrix;
+
     double (&_parameters)[RowsParams];
     double (&_x)[RowsMeasurements][RowsParams];
     double (&_y)[RowsMeasurements];
 
-    double hessian[RowsParams][RowsParams],
-           choleskyDecomposition[RowsParams][RowsParams];
+    double _hessian[RowsParams][RowsParams],
+           _choleskyDecomposition[RowsParams][RowsParams];
 
-    double derivative[RowsParams],
-           gradient[RowsParams];
+    double _derivative[RowsParams],
+           _gradient[RowsParams];
 
     double _newParameters[RowsParams],
-           delta[RowsParams];
+           _delta[RowsParams];
 
     double getError(
         ParamMatrix parameters,
@@ -58,7 +60,10 @@ private:
         YMatrix y
     );
 
-    bool getCholeskyDecomposition();
+    bool getCholeskyDecomposition(
+        SquareParamMatrix hessian,
+        ParamMatrix derivative
+    );
     void solveCholesky();
 };
 
@@ -75,11 +80,11 @@ MyGTSAMSolver<RowsMeasurements, RowsParameters>::MyGTSAMSolver(
     _parameters(initialParams),
     _x(x),
     _y(y),
-    hessian{},
-    choleskyDecomposition{},
-    derivative{},
-    gradient{},
-    delta{},
+    _hessian{},
+    _choleskyDecomposition{},
+    _derivative{},
+    _gradient{},
+    _delta{},
     _newParameters{}
 {}
 
@@ -107,8 +112,13 @@ bool MyGTSAMSolver<RowsMeasurements, RowsParameters>::fit() {
     XMatrix x(&_x[0][0], RowsMeasurements, RowsParameters);
     YMatrix y(&_y[0], RowsMeasurements, 1);
 
+    ParamMatrix derivative(&_derivative[0], RowsParameters);
+    ParamMatrix gradient(&_gradient[0], RowsParameters);
+
+    SquareParamMatrix hessian(&_hessian[0][0], RowsParameters, RowsParameters);
+
     // TODO: make these input arguments
-    int maxIterations = 10000;
+    int maxIterations = 5000;
     double lambda = 0.1;
     double upFactor = 10.0;
     double downFactor = 1.0/10.0;
@@ -121,29 +131,21 @@ bool MyGTSAMSolver<RowsMeasurements, RowsParameters>::fit() {
         std::cout << "Current Error: " << currentError << std::endl;
         std::cout << "Mean Error: " << currentError / RowsMeasurements << std::endl << std::endl;
 
+        derivative.setZero();
+        hessian.setZero();
 
-        for (int i = 0; i < RowsParameters; i++) {
-            derivative[i] = 0.0;
-        }
-
-        for (int i = 0; i < RowsParameters; i++) {
-            for (int j = 0; j < RowsParameters; j++) {
-                hessian[i][j] = 0.0;
-            }
-        }
-
-        // Build out the jacobian and the hessian matrices
+        // Build out the jacobian and the _hessian matrices
         for (int m = 0; m < RowsMeasurements; m++) {
             XRow currX(_x[m]);
             double currY = y[m];
             gradientFunction(gradient, parameters, currX);
 
             for (int i = 0; i < RowsParameters; i++) {
-                // J_i = residual * gradient
-                derivative[i] += (currY - evaluationFunction(parameters, currX)) * gradient[i];
+                // J_i = residual * _gradient
+                _derivative[i] += (currY - evaluationFunction(parameters, currX)) * _gradient[i];
                 // H = J^T * J
                 for (int j = 0; j <=i; j++) {
-                    hessian[i][j] += gradient[i]*gradient[j];
+                    hessian(i, j) += _gradient[i]*_gradient[j];
                 }
             }
         }
@@ -154,11 +156,11 @@ bool MyGTSAMSolver<RowsMeasurements, RowsParameters>::fit() {
         double deltaError = 0;
 
         while (illConditioned && iteration < maxIterations) {
-            illConditioned = getCholeskyDecomposition();
+            illConditioned = getCholeskyDecomposition(hessian, derivative);
             if (!illConditioned) {
                 solveCholesky();
                 for (int i = 0; i < RowsParameters; i++) {
-                    _newParameters[i] = parameters(i) + delta[i];
+                    _newParameters[i] = parameters(i) + _delta[i];
                 }
                 newError = getError(newParameters, x, y);
                 deltaError = newError - currentError;
@@ -187,7 +189,7 @@ bool MyGTSAMSolver<RowsMeasurements, RowsParameters>::fit() {
 }
 
 template<int RowsMeasurements, int RowsParameters>
-bool MyGTSAMSolver<RowsMeasurements, RowsParameters>::getCholeskyDecomposition() {
+bool MyGTSAMSolver<RowsMeasurements, RowsParameters>::getCholeskyDecomposition(SquareParamMatrix hessian, ParamMatrix gradient) {
     int i, j, k;
     double sum;
 
@@ -197,18 +199,18 @@ bool MyGTSAMSolver<RowsMeasurements, RowsParameters>::getCholeskyDecomposition()
         for (j = 0; j < i; j++) {
             sum = 0;
             for (k = 0; k < j; k++) {
-                sum += choleskyDecomposition[i][k] * choleskyDecomposition[j][k];
+                sum += _choleskyDecomposition[i][k] * _choleskyDecomposition[j][k];
             }
-            choleskyDecomposition[i][j] = (hessian[i][j] - sum) / choleskyDecomposition[j][j];
+            _choleskyDecomposition[i][j] = (_hessian[i][j] - sum) / _choleskyDecomposition[j][j];
         }
 
         sum = 0;
         for (k = 0; k < i; k++) {
-            sum += choleskyDecomposition[i][k] * choleskyDecomposition[i][k];
+            sum += _choleskyDecomposition[i][k] * _choleskyDecomposition[i][k];
         }
-        sum = hessian[i][i] - sum;
+        sum = _hessian[i][i] - sum;
         if (sum < TOL) return true;
-        choleskyDecomposition[i][i] = sqrt(sum);
+        _choleskyDecomposition[i][i] = sqrt(sum);
     }
     return 0;
 }
@@ -223,17 +225,17 @@ void MyGTSAMSolver<RowsMeasurements, RowsParameters>::solveCholesky() {
     for (i = 0; i < n; i++) {
         sum = 0;
         for (j = 0; j < i; j++) {
-            sum += choleskyDecomposition[i][j] * delta[j];
+            sum += _choleskyDecomposition[i][j] * _delta[j];
         }
-        delta[j] = (derivative[i] - sum) / choleskyDecomposition[i][i];
+        _delta[j] = (_derivative[i] - sum) / _choleskyDecomposition[i][i];
     }
 
     for (i = n - 1; i >= 0; i--) {
         sum = 0;
         for (j = i + 1; j < n; j++) {
-            sum += choleskyDecomposition[j][i] * delta[j];
+            sum += _choleskyDecomposition[j][i] * _delta[j];
         }
-        delta[i] = (delta[i] - sum) / choleskyDecomposition[i][i];
+        _delta[i] = (_delta[i] - sum) / _choleskyDecomposition[i][i];
     }
 }
 

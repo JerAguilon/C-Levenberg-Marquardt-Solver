@@ -43,7 +43,7 @@ double evaluationFunction(ParamMatrix params, XRow x) {
  * can get significant runtime benefits by implementing your gradient
  * analytically.
  */
-void gradientFunction(double *gradient, ParamMatrix params, XRow x) {
+void gradientFunction(ParamMatrix gradient, ParamMatrix params, XRow x) {
     float epsilon = 1e-5f;
 
     for (int iParam = 0; iParam < 3; iParam++) {
