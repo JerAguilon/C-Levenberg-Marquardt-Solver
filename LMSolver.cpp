@@ -1,26 +1,32 @@
-#include <iostream>
+#include <chrono>
 #include <fstream>
+#include <iostream>
+#include <math.h>
 #include <random>
 #include <utility>
-#include <chrono>
 
 #include "solver/GTSAMSolver.h"
 #include "prototype/MyGTSAMSolver.cpp"
 
-const int M = 100; // Number of measurements
+const int M = 1000; // Number of measurements
 const int N = 3; // Number of parameters: a, b, c
 
 
 /**
- * Simple dot product evaluation function given a sample x and its parameters
+ * A simple linear evaluation function. Using this will likely yield quite low errors.
  */
 double dotProductEvaluationFunction(double *params, double *x) {
-    double total = 0;
+    return params[0] * x[0] + params[1] * x[1] + params[2] * x[2];
+}
 
-    for (int i = 0; i < 3; i++) {
-        total += params[i] * x[i];
-    }
-    return total;
+
+/**
+ * An arbitrary (meaningless) nonlinear function for demonstration purposes
+ */
+double evaluationFunction(double *params, double *x) {
+    return dotProductEvaluationFunction(params, x) / cos(x[0]) + exp(
+        (params[0] - params[1] + params[2]) * x[2] / 30
+    );
 }
 
 
@@ -31,7 +37,7 @@ double dotProductEvaluationFunction(double *params, double *x) {
  * analytically.
  */
 void gradientFunction(double *gradient, double *params, double *x) {
-    float epsilon = 1e-4f;
+    float epsilon = 1e-5f;
 
     for (int iParam = 0; iParam < 3; iParam++) {
         double currParam = params[iParam];
@@ -41,10 +47,10 @@ void gradientFunction(double *gradient, double *params, double *x) {
 
 
         params[iParam] = paramPlus;
-        double evalPlus = dotProductEvaluationFunction(params, x);
+        double evalPlus = evaluationFunction(params, x);
 
         params[iParam] = paramMinus;
-        double evalMinus = dotProductEvaluationFunction(params, x);
+        double evalMinus = evaluationFunction(params, x);
 
         params[iParam] = currParam;
 
@@ -86,7 +92,7 @@ void generatePoints(double (&xValues)[M][N], double (&yValues)[M]) {
         double x0 = 1 + xDistribution(generator);
         double xArr[N] = {x2, x1, x0};
 
-        double noisyY = dotProductEvaluationFunction(paramArr, xArr) + yDistribution(generator);
+        double noisyY = evaluationFunction(paramArr, xArr) + yDistribution(generator);
 
         xValues[x][0] = xArr[0];
         xValues[x][1] = xArr[1];
@@ -108,7 +114,7 @@ int main() {
 
 
     // Define pointers towards our evaluation function and gradient function
-    EvaluationFunction e = &dotProductEvaluationFunction;
+    EvaluationFunction e =  evaluationFunction;
     GradientFunction g = &gradientFunction;
 
     // Initialize the solver and fit, which updates initialParams
