@@ -10,7 +10,7 @@ typedef void (*GradientFunction)(double *gradient, double *params, double *x);
  *  Solves the equation X[RowsMeasurements x RowsParam] * P[RowsParam] = Y[RowsMeasurements]
  *  todo(Jeremy): Add generic support for ColsY
  */
-template<int RowsParams, int RowsMeasurements>
+template<int RowsParams, int RowsMeasurements, int ColsY = 1 /* Stubbed since it is unsupported for now */>
 class MyGTSAMSolver {
 public:
 

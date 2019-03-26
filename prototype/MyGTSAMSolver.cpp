@@ -4,13 +4,13 @@
 
 #include "MyGTSAMSolver.h"
 
-template<int NumParameters, int NumMeasurements>
-MyGTSAMSolver<NumParameters, NumMeasurements>::MyGTSAMSolver(
+template<int RowsParameters, int RowsMeasurements, int ColsY>
+MyGTSAMSolver<RowsParameters, RowsMeasurements, ColsY>::MyGTSAMSolver(
     EvaluationFunction evaluationFunction,
     GradientFunction gradientFunction,
-    double (&initialParams)[NumParameters],
-    double (&x)[NumMeasurements][NumParameters],
-    double (&y)[NumMeasurements]
+    double (&initialParams)[RowsParameters],
+    double (&x)[RowsMeasurements][RowsParameters],
+    double (&y)[RowsMeasurements]
 ):
     evaluationFunction(evaluationFunction),
     gradientFunction(gradientFunction),
@@ -25,24 +25,24 @@ MyGTSAMSolver<NumParameters, NumMeasurements>::MyGTSAMSolver(
     newParameters{}
 {}
 
-template<int NumParameters, int NumMeasurements>
-double MyGTSAMSolver<NumParameters, NumMeasurements>::getError(
-    double (&parameters)[NumParameters],
-    double (&x)[NumMeasurements][NumParameters],
-    double (&y)[NumMeasurements])
+template<int RowsParameters, int RowsMeasurements, int ColsY>
+double MyGTSAMSolver<RowsParameters, RowsMeasurements, ColsY>::getError(
+    double (&parameters)[RowsParameters],
+    double (&x)[RowsMeasurements][RowsParameters],
+    double (&y)[RowsMeasurements])
 {
     double residual;
     double error = 0;
 
-    for (int i = 0; i < NumMeasurements; i++) {
+    for (int i = 0; i < RowsMeasurements; i++) {
         residual = evaluationFunction(parameters, x[i]) - y[i];
         error += residual * residual;
     }
     return error;
 }
 
-template<int NumParameters, int NumMeasurements>
-bool MyGTSAMSolver<NumParameters, NumMeasurements>::fit() {
+template<int RowsParameters, int RowsMeasurements, int ColsY>
+bool MyGTSAMSolver<RowsParameters, RowsMeasurements, ColsY>::fit() {
     // TODO: make these input arguments
     int maxIterations = 10000;
     double lambda = 0.1;
@@ -55,26 +55,26 @@ bool MyGTSAMSolver<NumParameters, NumMeasurements>::fit() {
     int iteration;
     for (iteration=0; iteration < maxIterations; iteration++) {
         std::cout << "Current Error: " << currentError << std::endl;
-        std::cout << "Mean Error: " << currentError / NumMeasurements << std::endl << std::endl;
+        std::cout << "Mean Error: " << currentError / RowsMeasurements << std::endl << std::endl;
 
 
-        for (int i = 0; i < NumParameters; i++) {
+        for (int i = 0; i < RowsParameters; i++) {
             derivative[i] = 0.0;
         }
 
-        for (int i = 0; i < NumParameters; i++) {
-            for (int j = 0; j < NumParameters; j++) {
+        for (int i = 0; i < RowsParameters; i++) {
+            for (int j = 0; j < RowsParameters; j++) {
                 hessian[i][j] = 0.0;
             }
         }
 
         // Build out the jacobian and the hessian matrices
-        for (int m = 0; m < NumMeasurements; m++) {
+        for (int m = 0; m < RowsMeasurements; m++) {
             double *currX = x[m];
             double currY = y[m];
             gradientFunction(gradient, parameters, currX);
 
-            for (int i = 0; i < NumParameters; i++) {
+            for (int i = 0; i < RowsParameters; i++) {
                 // J_i = residual * gradient
                 derivative[i] += (currY - evaluationFunction(parameters, currX)) * gradient[i];
                 // H = J^T * J
@@ -93,7 +93,7 @@ bool MyGTSAMSolver<NumParameters, NumMeasurements>::fit() {
             illConditioned = getCholeskyDecomposition();
             if (!illConditioned) {
                 solveCholesky();
-                for (int i = 0; i < NumParameters; i++) {
+                for (int i = 0; i < RowsParameters; i++) {
                     newParameters[i] = parameters[i] + delta[i];
                 }
                 newError = getError(newParameters, x, y);
@@ -108,7 +108,7 @@ bool MyGTSAMSolver<NumParameters, NumMeasurements>::fit() {
             }
         }
 
-        for (int i = 0; i < NumParameters; i++) {
+        for (int i = 0; i < RowsParameters; i++) {
             parameters[i] = newParameters[i];
         }
 
@@ -118,16 +118,16 @@ bool MyGTSAMSolver<NumParameters, NumMeasurements>::fit() {
         if (!illConditioned && (-deltaError < targetDeltaError)) break;
     }
     std::cout << "Current Error: " << currentError << std::endl;
-    std::cout << "Mean Error: " << currentError / NumMeasurements << std::endl << std::endl;
+    std::cout << "Mean Error: " << currentError / RowsMeasurements << std::endl << std::endl;
     return true;
 }
 
-template<int NumParameters, int NumMeasurements>
-bool MyGTSAMSolver<NumParameters, NumMeasurements>::getCholeskyDecomposition() {
+template<int RowsParameters, int RowsMeasurements, int ColsY>
+bool MyGTSAMSolver<RowsParameters, RowsMeasurements, ColsY>::getCholeskyDecomposition() {
     int i, j, k;
     double sum;
 
-    int n = NumParameters;
+    int n = RowsParameters;
 
     for (i = 0; i < n; i++) {
         for (j = 0; j < i; j++) {
@@ -149,12 +149,12 @@ bool MyGTSAMSolver<NumParameters, NumMeasurements>::getCholeskyDecomposition() {
     return 0;
 }
 
-template<int NumParameters, int NumMeasurements>
-void MyGTSAMSolver<NumParameters, NumMeasurements>::solveCholesky() {
+template<int RowsParameters, int RowsMeasurements, int ColsY>
+void MyGTSAMSolver<RowsParameters, RowsMeasurements, ColsY>::solveCholesky() {
     int i, j;
     double sum;
 
-    int n = NumParameters;
+    int n = RowsParameters;
 
     for (i = 0; i < n; i++) {
         sum = 0;
