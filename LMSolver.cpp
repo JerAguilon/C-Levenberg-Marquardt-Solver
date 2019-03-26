@@ -16,12 +16,13 @@ using Solver = MyGTSAMSolver<M, N>;
 using ParamMatrix = Solver::ParamMatrix;
 using EvaluationFunction = Solver::EvaluationFunction;
 using GradientFunction = Solver::GradientFunction;
+using XRow = Solver::XRow;
 
 
 /**
  * A simple linear evaluation function. Using this will likely yield quite low errors.
  */
-double dotProductEvaluationFunction(ParamMatrix params, double *x) {
+double dotProductEvaluationFunction(ParamMatrix params, XRow x) {
     return params[0] * x[0] + params[1] * x[1] + params[2] * x[2];
 }
 
@@ -29,7 +30,7 @@ double dotProductEvaluationFunction(ParamMatrix params, double *x) {
 /**
  * An arbitrary (meaningless) nonlinear function for demonstration purposes
  */
-double evaluationFunction(ParamMatrix params, double *x) {
+double evaluationFunction(ParamMatrix params, XRow x) {
     return x[0] * params[0] / params[1] + dotProductEvaluationFunction(params, x) + exp(
         (params[0] - params[1] + params[2]) / 30
     );
@@ -42,7 +43,7 @@ double evaluationFunction(ParamMatrix params, double *x) {
  * can get significant runtime benefits by implementing your gradient
  * analytically.
  */
-void gradientFunction(double *gradient, ParamMatrix params, double *x) {
+void gradientFunction(double *gradient, ParamMatrix params, XRow x) {
     float epsilon = 1e-5f;
 
     for (int iParam = 0; iParam < 3; iParam++) {
@@ -102,7 +103,9 @@ void generatePoints(double (&xValues)[M][N], double (&yValues)[M], double(&oracl
         double x0 = 1 + xDistribution(generator);
         double xArr[N] = {x2, x1, x0};
 
-        double noisyY = evaluationFunction(parameters, xArr) + yDistribution(generator);
+        XRow xRow(&xArr[0]);
+
+        double noisyY = evaluationFunction(parameters, xRow) + yDistribution(generator);
 
         xValues[x][0] = xArr[0];
         xValues[x][1] = xArr[1];
