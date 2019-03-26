@@ -12,11 +12,16 @@
 const int M = 1000; // Number of measurements
 const int N = 3; // Number of parameters: a, b, c
 
+using Solver = MyGTSAMSolver<M, N>;
+using ParamMatrix = Solver::ParamMatrix;
+using EvaluationFunction = Solver::EvaluationFunction;
+using GradientFunction = Solver::GradientFunction;
+
 
 /**
  * A simple linear evaluation function. Using this will likely yield quite low errors.
  */
-double dotProductEvaluationFunction(double *params, double *x) {
+double dotProductEvaluationFunction(ParamMatrix params, double *x) {
     return params[0] * x[0] + params[1] * x[1] + params[2] * x[2];
 }
 
@@ -24,7 +29,7 @@ double dotProductEvaluationFunction(double *params, double *x) {
 /**
  * An arbitrary (meaningless) nonlinear function for demonstration purposes
  */
-double evaluationFunction(double *params, double *x) {
+double evaluationFunction(ParamMatrix params, double *x) {
     return x[0] * params[0] / params[1] + dotProductEvaluationFunction(params, x) + exp(
         (params[0] - params[1] + params[2]) / 30
     );
@@ -37,7 +42,7 @@ double evaluationFunction(double *params, double *x) {
  * can get significant runtime benefits by implementing your gradient
  * analytically.
  */
-void gradientFunction(double *gradient, double *params, double *x) {
+void gradientFunction(double *gradient, ParamMatrix params, double *x) {
     float epsilon = 1e-5f;
 
     for (int iParam = 0; iParam < 3; iParam++) {
@@ -84,6 +89,7 @@ void generatePoints(double (&xValues)[M][N], double (&yValues)[M], double(&oracl
     oracleParams[2] = c;
 
     double paramArr[N] = {a, b, c};
+    ParamMatrix parameters(&paramArr[0], N, 1);
 
     std::cout << "Randomly Generated Params" << std::endl;
     std::cout <<  "\t a:" << a << std::endl;
@@ -96,7 +102,7 @@ void generatePoints(double (&xValues)[M][N], double (&yValues)[M], double(&oracl
         double x0 = 1 + xDistribution(generator);
         double xArr[N] = {x2, x1, x0};
 
-        double noisyY = evaluationFunction(paramArr, xArr) + yDistribution(generator);
+        double noisyY = evaluationFunction(parameters, xArr) + yDistribution(generator);
 
         xValues[x][0] = xArr[0];
         xValues[x][1] = xArr[1];
@@ -133,7 +139,7 @@ int main() {
     // initialize some parameters to some bad estimate of the oracle
     unsigned seed = std::chrono::system_clock::now().time_since_epoch().count();
     std::default_random_engine generator(seed);
-    std::uniform_real_distribution<double> paramDistribution(-1, 1);
+    std::uniform_real_distribution<double> paramDistribution(-3, 3);
     double initialParams[N] = {
         oracleParams[0] + paramDistribution(generator),
         oracleParams[1] + paramDistribution(generator),
@@ -142,9 +148,9 @@ int main() {
     double *initialParamsPtr = initialParams;
 
 
-
     // Define pointers towards our evaluation function and gradient function
-    EvaluationFunction e =  evaluationFunction; GradientFunction g = &gradientFunction;
+    EvaluationFunction e =  &evaluationFunction;
+    GradientFunction g = &gradientFunction;
 
     // Create Eigen Matrices by passing pointers to the data. This avoids a
     // Malloc as we are simply reusing the data address
@@ -154,7 +160,7 @@ int main() {
 
     // Initialize the solver and fit, which updates initialParams
     // to have the final result
-    MyGTSAMSolver<M, N> mysolver(e, g, initialParams, xValues, yValues);
+    Solver mysolver(e, g, initialParams, xValues, yValues);
     mysolver.fit();
 
     std::cout << "Opt result" << std::endl;

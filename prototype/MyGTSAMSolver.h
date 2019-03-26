@@ -6,22 +6,23 @@
 #include <algorithm>
 #include <math.h>
 
-typedef double (*EvaluationFunction)(double *params, double *x);
-typedef void (*GradientFunction)(double *gradient, double *params, double *x);
+#include <Eigen/Core>
+
 
 /**
  *  Solves the equation X[RowsMeasurements x RowsParam] * P[RowsParam] = Y[RowsMeasurements]
  */
 template<int RowsMeasurements, int RowsParams>
 class MyGTSAMSolver {
+
 public:
+    typedef Eigen::Map<Eigen::Matrix<double, RowsParams, 1>> ParamMatrix;
+    typedef double (*EvaluationFunction)(ParamMatrix params, double *x);
+    typedef void (*GradientFunction)(double *gradient, ParamMatrix params, double *x);
 
     EvaluationFunction evaluationFunction;
     GradientFunction gradientFunction;
 
-    double (&parameters)[RowsParams];
-    double (&x)[RowsMeasurements][RowsParams];
-    double (&y)[RowsMeasurements];
 
     MyGTSAMSolver(
         EvaluationFunction evaluationFunction,
@@ -34,17 +35,21 @@ public:
     bool fit();
 
 private:
+    double (&_parameters)[RowsParams];
+    double (&x)[RowsMeasurements][RowsParams];
+    double (&y)[RowsMeasurements];
+
     double hessian[RowsParams][RowsParams],
            choleskyDecomposition[RowsParams][RowsParams];
 
     double derivative[RowsParams],
            gradient[RowsParams];
 
-    double newParameters[RowsParams],
+    double _newParameters[RowsParams],
            delta[RowsParams];
 
     double getError(
-        double (&parameters)[RowsParams],
+        ParamMatrix parameters,
         double (&x)[RowsMeasurements][RowsParams],
         double (&y)[RowsMeasurements]);
 
@@ -62,7 +67,7 @@ MyGTSAMSolver<RowsMeasurements, RowsParameters>::MyGTSAMSolver(
 ):
     evaluationFunction(evaluationFunction),
     gradientFunction(gradientFunction),
-    parameters(initialParams),
+    _parameters(initialParams),
     x(x),
     y(y),
     hessian{},
@@ -70,12 +75,12 @@ MyGTSAMSolver<RowsMeasurements, RowsParameters>::MyGTSAMSolver(
     derivative{},
     gradient{},
     delta{},
-    newParameters{}
+    _newParameters{}
 {}
 
 template<int RowsMeasurements, int RowsParameters>
 double MyGTSAMSolver<RowsMeasurements, RowsParameters>::getError(
-    double (&parameters)[RowsParameters],
+    ParamMatrix parameters,
     double (&x)[RowsMeasurements][RowsParameters],
     double (&y)[RowsMeasurements])
 {
@@ -91,6 +96,11 @@ double MyGTSAMSolver<RowsMeasurements, RowsParameters>::getError(
 
 template<int RowsMeasurements, int RowsParameters>
 bool MyGTSAMSolver<RowsMeasurements, RowsParameters>::fit() {
+    ParamMatrix parameters(&_parameters[0], RowsParameters, 1);
+    ParamMatrix newParameters(&_newParameters[0], RowsParameters, 1);
+
+    std::cout << parameters << std::endl;
+
     // TODO: make these input arguments
     int maxIterations = 10000;
     double lambda = 0.1;
@@ -142,7 +152,7 @@ bool MyGTSAMSolver<RowsMeasurements, RowsParameters>::fit() {
             if (!illConditioned) {
                 solveCholesky();
                 for (int i = 0; i < RowsParameters; i++) {
-                    newParameters[i] = parameters[i] + delta[i];
+                    _newParameters[i] = parameters(i) + delta[i];
                 }
                 newError = getError(newParameters, x, y);
                 deltaError = newError - currentError;
@@ -157,7 +167,7 @@ bool MyGTSAMSolver<RowsMeasurements, RowsParameters>::fit() {
         }
 
         for (int i = 0; i < RowsParameters; i++) {
-            parameters[i] = newParameters[i];
+            parameters(i) = _newParameters[i];
         }
 
         currentError = newError;
