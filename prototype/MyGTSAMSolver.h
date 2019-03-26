@@ -3,8 +3,8 @@
 
 #define TOL 1e-30
 
-typedef double (*EvaluationFunction)(double *params, double x);
-typedef void (*GradientFunction)(double *gradient, double *params, double x);
+typedef double (*EvaluationFunction)(double *params, double *x);
+typedef void (*GradientFunction)(double *gradient, double *params, double *x);
 
 template<int NumParameters, int NumMeasurements>
 class MyGTSAMSolver {
@@ -14,14 +14,14 @@ public:
     GradientFunction gradientFunction;
 
     double (&parameters)[NumParameters];
-    double (&x)[NumMeasurements];
+    double (&x)[NumMeasurements][NumParameters];
     double (&y)[NumMeasurements];
 
     MyGTSAMSolver(
         EvaluationFunction evaluationFunction,
         GradientFunction gradientFunction,
         double (&initialParams)[NumParameters],
-        double (&x)[NumMeasurements],
+        double (&x)[NumMeasurements][NumParameters],
         double (&y)[NumMeasurements]
     );
 
@@ -39,7 +39,7 @@ private:
 
     double getError(
         double (&parameters)[NumParameters],
-        double (&x)[NumMeasurements],
+        double (&x)[NumMeasurements][NumParameters],
         double (&y)[NumMeasurements]);
 
     bool getCholeskyDecomposition();

@@ -9,7 +9,7 @@ MyGTSAMSolver<NumParameters, NumMeasurements>::MyGTSAMSolver(
     EvaluationFunction evaluationFunction,
     GradientFunction gradientFunction,
     double (&initialParams)[NumParameters],
-    double (&x)[NumMeasurements],
+    double (&x)[NumMeasurements][NumParameters],
     double (&y)[NumMeasurements]
 ):
     evaluationFunction(evaluationFunction),
@@ -28,7 +28,7 @@ MyGTSAMSolver<NumParameters, NumMeasurements>::MyGTSAMSolver(
 template<int NumParameters, int NumMeasurements>
 double MyGTSAMSolver<NumParameters, NumMeasurements>::getError(
     double (&parameters)[NumParameters],
-    double (&x)[NumMeasurements],
+    double (&x)[NumMeasurements][NumParameters],
     double (&y)[NumMeasurements])
 {
     double residual;
@@ -70,7 +70,7 @@ bool MyGTSAMSolver<NumParameters, NumMeasurements>::fit() {
 
         // Build out the jacobian and the hessian matrices
         for (int m = 0; m < NumMeasurements; m++) {
-            double currX = x[m];
+            double *currX = x[m];
             double currY = y[m];
             gradientFunction(gradient, parameters, currX);
 
