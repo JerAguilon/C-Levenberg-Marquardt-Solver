@@ -154,7 +154,7 @@ int main() {
 
     // Initialize the solver and fit, which updates initialParams
     // to have the final result
-    MyGTSAMSolver<N, M> mysolver(e, g, initialParams, xValues, yValues);
+    MyGTSAMSolver<M, N> mysolver(e, g, initialParams, xValues, yValues);
     mysolver.fit();
 
     std::cout << "Opt result" << std::endl;
