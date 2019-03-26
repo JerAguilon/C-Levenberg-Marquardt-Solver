@@ -22,8 +22,8 @@ public:
     typedef Eigen::Matrix<double, RowsParams, 1> XRow;
     typedef Eigen::Map<Eigen::Matrix<double, RowsMeasurements, RowsParams, Eigen::RowMajor>> JacobianMatrix;
 
-    typedef double (*EvaluationFunction)(ParamMatrix params, XRow x);
-    typedef void (*GradientFunction)(JacobianMatrix jacobian, ParamMatrix params, XMatrix x);
+    typedef double (*EvaluationFunction)(const ParamMatrix &params, const XRow &x);
+    typedef void (*GradientFunction)(JacobianMatrix &jacobian, ParamMatrix &params, const XMatrix &x);
 
     EvaluationFunction evaluationFunction;
     GradientFunction gradientFunction;
@@ -191,7 +191,8 @@ bool MyGTSAMSolver<RowsMeasurements, RowsParameters>::fit() {
         if (!illConditioned && (-deltaError < targetDeltaError)) break;
     }
     std::cout << "Current Error: " << currentError << std::endl;
-    std::cout << "Mean Error: " << currentError / RowsMeasurements << std::endl << std::endl;
+    std::cout << "Mean Error: " << currentError / RowsMeasurements << std::endl;
+    std::cout << "Total iterations: " << iteration << std::endl << std::endl;
     return true;
 }
 

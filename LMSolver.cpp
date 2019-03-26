@@ -25,7 +25,7 @@ using XMatrix = Solver::XMatrix;
 /**
  * A simple linear evaluation function. Using this will likely yield quite low errors.
  */
-double dotProductEvaluationFunction(ParamMatrix params, XRow x) {
+double dotProductEvaluationFunction(const ParamMatrix &params, const XRow &x) {
     return params[0] * x[0] + params[1] * x[1] + params[2] * x[2];
 }
 
@@ -33,7 +33,7 @@ double dotProductEvaluationFunction(ParamMatrix params, XRow x) {
 /**
  * An arbitrary (meaningless) nonlinear function for demonstration purposes
  */
-double evaluationFunction(ParamMatrix params, XRow x) {
+double evaluationFunction(const ParamMatrix &params, const XRow &x) {
     return x[0] * params[0] / params[1] + dotProductEvaluationFunction(params, x) + exp(
         (params[0] - params[1] + params[2]) / 30
     );
@@ -46,7 +46,7 @@ double evaluationFunction(ParamMatrix params, XRow x) {
  * can get significant runtime benefits by implementing your gradient
  * analytically and vectorize this.
  */
-void gradientFunction(JacobianMatrix jacobian, ParamMatrix params, XMatrix x) {
+void gradientFunction(JacobianMatrix &jacobian, ParamMatrix &params, const XMatrix &x) {
     float epsilon = 1e-5f;
     XRow jacobianRow;
     for (int m = 0; m < M; m++) {
