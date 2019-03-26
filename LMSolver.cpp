@@ -14,10 +14,12 @@ const int M = 1000; // Number of measurements
 const int N = 3; // Number of parameters: a, b, c
 
 using Solver = MyGTSAMSolver<M, N>;
-using ParamMatrix = Solver::ParamMatrix;
 using EvaluationFunction = Solver::EvaluationFunction;
 using GradientFunction = Solver::GradientFunction;
+using JacobianMatrix = Solver::JacobianMatrix;
+using ParamMatrix = Solver::ParamMatrix;
 using XRow = Solver::XRow;
+using XMatrix = Solver::XMatrix;
 
 
 /**
@@ -42,29 +44,31 @@ double evaluationFunction(ParamMatrix params, XRow x) {
  * Simple gradient function for an estimator. For demo purposes,
  * the gradients are not calculated analytically. Of course, you
  * can get significant runtime benefits by implementing your gradient
- * analytically.
+ * analytically and vectorize this.
  */
-void gradientFunction(ParamMatrix gradient, ParamMatrix params, XRow x) {
+void gradientFunction(JacobianMatrix jacobian, ParamMatrix params, XMatrix x) {
     float epsilon = 1e-5f;
+    XRow jacobianRow;
+    for (int m = 0; m < M; m++) {
+        for (int iParam = 0; iParam < 3; iParam++) {
+            double currParam = params[iParam];
 
-    for (int iParam = 0; iParam < 3; iParam++) {
-        double currParam = params[iParam];
+            double paramPlus = currParam + epsilon;
+            double paramMinus = currParam - epsilon;
 
-        double paramPlus = currParam + epsilon;
-        double paramMinus = currParam - epsilon;
+            params[iParam] = paramPlus;
+            double evalPlus = evaluationFunction(params, x.row(m));
 
+            params[iParam] = paramMinus;
+            double evalMinus = evaluationFunction(params, x.row(m));
 
-        params[iParam] = paramPlus;
-        double evalPlus = evaluationFunction(params, x);
+            params[iParam] = currParam;
 
-        params[iParam] = paramMinus;
-        double evalMinus = evaluationFunction(params, x);
+            double derivative = (evalPlus - evalMinus) / (2 * epsilon);
 
-        params[iParam] = currParam;
-
-        double derivative = (evalPlus - evalMinus) / (2 * epsilon);
-
-        gradient[iParam] = derivative;
+            jacobianRow[iParam] = derivative;
+        }
+        jacobian.row(m).noalias() = jacobianRow;
     }
 }
 
