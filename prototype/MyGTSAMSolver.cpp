@@ -117,6 +117,8 @@ bool MyGTSAMSolver<NumParameters, NumMeasurements>::fit() {
 
         if (!illConditioned && (-deltaError < targetDeltaError)) break;
     }
+    std::cout << "Current Error: " << currentError << std::endl;
+    std::cout << "Mean Error: " << currentError / NumMeasurements << std::endl << std::endl;
     return true;
 }
 

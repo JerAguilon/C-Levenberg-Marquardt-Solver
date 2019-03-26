@@ -75,7 +75,10 @@ void generatePoints(double (&xValues)[M][N], double (&yValues)[M]) {
 
     double paramArr[N] = {a, b, c};
 
-    std::cout << "Params: " << a << "," << b << "," << c << std::endl;
+    std::cout << "Randomly Generated Params" << std::endl;
+    std::cout <<  "\t a:" << a << std::endl;
+    std::cout <<  "\t b:" << b << std::endl;
+    std::cout <<  "\t c:" << c << std::endl << std::endl;
 
     for (int x = 0; x < M; x++) {
         double x2 = x * x + xDistribution(generator);

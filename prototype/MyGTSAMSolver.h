@@ -6,41 +6,45 @@
 typedef double (*EvaluationFunction)(double *params, double *x);
 typedef void (*GradientFunction)(double *gradient, double *params, double *x);
 
-template<int NumParameters, int NumMeasurements>
+/**
+ *  Solves the equation X[RowsMeasurements x RowsParam] * P[RowsParam] = Y[RowsMeasurements]
+ *  todo(Jeremy): Add generic support for ColsY
+ */
+template<int RowsParams, int RowsMeasurements>
 class MyGTSAMSolver {
 public:
 
     EvaluationFunction evaluationFunction;
     GradientFunction gradientFunction;
 
-    double (&parameters)[NumParameters];
-    double (&x)[NumMeasurements][NumParameters];
-    double (&y)[NumMeasurements];
+    double (&parameters)[RowsParams];
+    double (&x)[RowsMeasurements][RowsParams];
+    double (&y)[RowsMeasurements];
 
     MyGTSAMSolver(
         EvaluationFunction evaluationFunction,
         GradientFunction gradientFunction,
-        double (&initialParams)[NumParameters],
-        double (&x)[NumMeasurements][NumParameters],
-        double (&y)[NumMeasurements]
+        double (&initialParams)[RowsParams],
+        double (&x)[RowsMeasurements][RowsParams],
+        double (&y)[RowsMeasurements]
     );
 
     bool fit();
 
 private:
-    double hessian[NumParameters][NumParameters],
-           choleskyDecomposition[NumParameters][NumParameters];
+    double hessian[RowsParams][RowsParams],
+           choleskyDecomposition[RowsParams][RowsParams];
 
-    double derivative[NumParameters],
-           gradient[NumParameters];
+    double derivative[RowsParams],
+           gradient[RowsParams];
 
-    double newParameters[NumParameters],
-           delta[NumParameters];
+    double newParameters[RowsParams],
+           delta[RowsParams];
 
     double getError(
-        double (&parameters)[NumParameters],
-        double (&x)[NumMeasurements][NumParameters],
-        double (&y)[NumMeasurements]);
+        double (&parameters)[RowsParams],
+        double (&x)[RowsMeasurements][RowsParams],
+        double (&y)[RowsMeasurements]);
 
     bool getCholeskyDecomposition();
     void solveCholesky();
