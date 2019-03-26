@@ -5,6 +5,8 @@
 #include <random>
 #include <utility>
 
+#include <Eigen/Core>
+
 #include "prototype/MyGTSAMSolver.h"
 
 const int M = 1000; // Number of measurements
@@ -111,6 +113,22 @@ int main() {
     double yValues[M] = {0};
     generatePoints(xValues, yValues, oracleParams);
 
+    double xFlattened[M * N] = {0};
+    int k = 0;
+    for (int m = 0; m < M; m++) {
+        for (int n = 0; n < N; n++) {
+            xFlattened[k] = xValues[m][n];
+            k++;
+        }
+    }
+
+    double *yValuesPtr = yValues;
+    double *xValuesPtr = xFlattened;
+
+    using YMatrix = Eigen::Matrix<double, M, 1>;
+    using XMatrix = Eigen::Matrix<double, M, N>;
+    using ParamMatrix = Eigen::Matrix<double, N, 1>;
+
 
     // initialize some parameters to some bad estimate of the oracle
     unsigned seed = std::chrono::system_clock::now().time_since_epoch().count();
@@ -121,11 +139,18 @@ int main() {
         oracleParams[1] + paramDistribution(generator),
         oracleParams[2] + paramDistribution(generator)
     };
+    double *initialParamsPtr = initialParams;
+
 
 
     // Define pointers towards our evaluation function and gradient function
-    EvaluationFunction e =  evaluationFunction;
-    GradientFunction g = &gradientFunction;
+    EvaluationFunction e =  evaluationFunction; GradientFunction g = &gradientFunction;
+
+    // Create Eigen Matrices by passing pointers to the data. This avoids a
+    // Malloc as we are simply reusing the data address
+    Eigen::Map<XMatrix> xMatrix(xValuesPtr, M, N);
+    Eigen::Map<YMatrix> yMatrix(yValuesPtr, M, 1);
+    Eigen::Map<ParamMatrix> paramMatrix(initialParams, N, 1);
 
     // Initialize the solver and fit, which updates initialParams
     // to have the final result
