@@ -11,9 +11,8 @@ typedef void (*GradientFunction)(double *gradient, double *params, double *x);
 
 /**
  *  Solves the equation X[RowsMeasurements x RowsParam] * P[RowsParam] = Y[RowsMeasurements]
- *  todo(Jeremy): Add generic support for ColsY
  */
-template<int RowsParams, int RowsMeasurements, int ColsY = 1 /* Stubbed since it is unsupported for now */>
+template<int RowsParams, int RowsMeasurements>
 class MyGTSAMSolver {
 public:
 
@@ -53,8 +52,8 @@ private:
     void solveCholesky();
 };
 
-template<int RowsParameters, int RowsMeasurements, int ColsY>
-MyGTSAMSolver<RowsParameters, RowsMeasurements, ColsY>::MyGTSAMSolver(
+template<int RowsParameters, int RowsMeasurements>
+MyGTSAMSolver<RowsParameters, RowsMeasurements>::MyGTSAMSolver(
     EvaluationFunction evaluationFunction,
     GradientFunction gradientFunction,
     double (&initialParams)[RowsParameters],
@@ -74,8 +73,8 @@ MyGTSAMSolver<RowsParameters, RowsMeasurements, ColsY>::MyGTSAMSolver(
     newParameters{}
 {}
 
-template<int RowsParameters, int RowsMeasurements, int ColsY>
-double MyGTSAMSolver<RowsParameters, RowsMeasurements, ColsY>::getError(
+template<int RowsParameters, int RowsMeasurements>
+double MyGTSAMSolver<RowsParameters, RowsMeasurements>::getError(
     double (&parameters)[RowsParameters],
     double (&x)[RowsMeasurements][RowsParameters],
     double (&y)[RowsMeasurements])
@@ -90,8 +89,8 @@ double MyGTSAMSolver<RowsParameters, RowsMeasurements, ColsY>::getError(
     return error;
 }
 
-template<int RowsParameters, int RowsMeasurements, int ColsY>
-bool MyGTSAMSolver<RowsParameters, RowsMeasurements, ColsY>::fit() {
+template<int RowsParameters, int RowsMeasurements>
+bool MyGTSAMSolver<RowsParameters, RowsMeasurements>::fit() {
     // TODO: make these input arguments
     int maxIterations = 10000;
     double lambda = 0.1;
@@ -171,8 +170,8 @@ bool MyGTSAMSolver<RowsParameters, RowsMeasurements, ColsY>::fit() {
     return true;
 }
 
-template<int RowsParameters, int RowsMeasurements, int ColsY>
-bool MyGTSAMSolver<RowsParameters, RowsMeasurements, ColsY>::getCholeskyDecomposition() {
+template<int RowsParameters, int RowsMeasurements>
+bool MyGTSAMSolver<RowsParameters, RowsMeasurements>::getCholeskyDecomposition() {
     int i, j, k;
     double sum;
 
@@ -198,8 +197,8 @@ bool MyGTSAMSolver<RowsParameters, RowsMeasurements, ColsY>::getCholeskyDecompos
     return 0;
 }
 
-template<int RowsParameters, int RowsMeasurements, int ColsY>
-void MyGTSAMSolver<RowsParameters, RowsMeasurements, ColsY>::solveCholesky() {
+template<int RowsParameters, int RowsMeasurements>
+void MyGTSAMSolver<RowsParameters, RowsMeasurements>::solveCholesky() {
     int i, j;
     double sum;
 
