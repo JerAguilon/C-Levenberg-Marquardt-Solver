@@ -20,6 +20,7 @@ public:
     typedef Eigen::Map<Eigen::Matrix<double, RowsMeasurements, RowsParams, Eigen::RowMajor>> XMatrix;
     typedef Eigen::Map<Eigen::Matrix<double, RowsMeasurements, 1>> YMatrix;
     typedef Eigen::Matrix<double, RowsParams, 1> XRow;
+    typedef Eigen::Map<Eigen::Matrix<double, RowsMeasurements, RowsParams, Eigen::RowMajor>> JacobianMatrix;
 
     typedef double (*EvaluationFunction)(ParamMatrix params, XRow x);
     typedef void (*GradientFunction)(ParamMatrix gradient, ParamMatrix params, XRow x);
@@ -49,7 +50,8 @@ private:
            _choleskyDecomposition[RowsParams][RowsParams];
 
     double _derivative[RowsParams],
-           _gradient[RowsParams];
+           _gradient[RowsParams],
+           _jacobianMatrix[RowsMeasurements][RowsParams];
 
     double _newParameters[RowsParams],
            _delta[RowsParams];
@@ -88,6 +90,7 @@ MyGTSAMSolver<RowsMeasurements, RowsParameters>::MyGTSAMSolver(
     _choleskyDecomposition{},
     _derivative{},
     _gradient{},
+    _jacobianMatrix{},
     _delta{},
     _newParameters{}
 {}
@@ -123,6 +126,8 @@ bool MyGTSAMSolver<RowsMeasurements, RowsParameters>::fit() {
     SquareParamMatrix hessian(&_hessian[0][0], RowsParameters, RowsParameters);
     SquareParamMatrix choleskyDecomposition(&_choleskyDecomposition[0][0], RowsParameters, RowsParameters);
 
+    JacobianMatrix jacobianMatrix(&_jacobianMatrix[0][0], RowsMeasurements, RowsParameters);
+
     // TODO: make these input arguments
     int maxIterations = 5000;
     double lambda = 0.1;
@@ -142,19 +147,18 @@ bool MyGTSAMSolver<RowsMeasurements, RowsParameters>::fit() {
 
         // Build out the jacobian and the _hessian matrices
         for (int m = 0; m < RowsMeasurements; m++) {
-            XRow currX(_x[m]);
             double currY = y[m];
-            gradientFunction(gradient, parameters, currX);
+            gradientFunction(gradient, parameters, x.row(m));
+            jacobianMatrix.row(m) = gradient.col(0);
 
             for (int i = 0; i < RowsParameters; i++) {
-                // J_i = residual * _gradient
-                _derivative[i] += (currY - evaluationFunction(parameters, currX)) * _gradient[i];
-                // H = J^T * J
-                for (int j = 0; j <=i; j++) {
-                    hessian(i, j) += _gradient[i]*_gradient[j];
-                }
+                // derivative = residual * _gradient
+                derivative[i] += (currY - evaluationFunction(parameters, x.row(m))) * gradient(i);
             }
         }
+
+        // H = J^T * J
+        hessian.noalias() = jacobianMatrix.transpose() * jacobianMatrix;
 
         double multFactor = 1 + lambda;
         bool illConditioned = true;

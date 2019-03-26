@@ -5,6 +5,7 @@
 #include <random>
 #include <utility>
 
+#define EIGEN_RUNTIME_NO_MALLOC
 #include <Eigen/Core>
 
 #include "prototype/MyGTSAMSolver.h"
@@ -162,9 +163,12 @@ int main() {
     Eigen::Map<ParamMatrix> paramMatrix(initialParams, N, 1);
 
     // Initialize the solver and fit, which updates initialParams
-    // to have the final result
+    // to have the final result. Add a flag so that we crash if
+    // a malloc occurs.
+    Eigen::internal::set_is_malloc_allowed(false);
     Solver mysolver(e, g, initialParams, xValues, yValues);
     mysolver.fit();
+    Eigen::internal::set_is_malloc_allowed(true);
 
     std::cout << "Opt result" << std::endl;
     std::cout << "\ta: " << initialParams[0] << std::endl;
