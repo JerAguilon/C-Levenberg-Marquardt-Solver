@@ -24,8 +24,8 @@ double dotProductEvaluationFunction(double *params, double *x) {
  * An arbitrary (meaningless) nonlinear function for demonstration purposes
  */
 double evaluationFunction(double *params, double *x) {
-    return dotProductEvaluationFunction(params, x) / cos(x[0]) + exp(
-        (params[0] - params[1] + params[2]) * x[2] / 30
+    return x[0] * params[0] / params[1] + dotProductEvaluationFunction(params, x) + exp(
+        (params[0] - params[1] + params[2]) / 30
     );
 }
 
@@ -67,7 +67,7 @@ void gradientFunction(double *gradient, double *params, double *x) {
  * M (M=100) quadratic points with some Gaussian noise. Fiddle with the noise
  * and notice how the final error increases when the noise increases
  */
-void generatePoints(double (&xValues)[M][N], double (&yValues)[M]) {
+void generatePoints(double (&xValues)[M][N], double (&yValues)[M], double(&oracleParams)[N]) {
     unsigned seed = std::chrono::system_clock::now().time_since_epoch().count();
 
     std::default_random_engine generator(seed);
@@ -78,6 +78,9 @@ void generatePoints(double (&xValues)[M][N], double (&yValues)[M]) {
     double a = paramDistribution(generator);
     double b = paramDistribution(generator);
     double c = paramDistribution(generator);
+    oracleParams[0] = a;
+    oracleParams[1] = b;
+    oracleParams[2] = c;
 
     double paramArr[N] = {a, b, c};
 
@@ -104,13 +107,21 @@ void generatePoints(double (&xValues)[M][N], double (&yValues)[M]) {
 int main() {
 
     // Generate random points to fit
+    double oracleParams[N] = {0}; // The actual parameters used to generate the points
     double xValues[M][N] = {0};
     double yValues[M] = {0};
-    generatePoints(xValues, yValues);
+    generatePoints(xValues, yValues, oracleParams);
 
 
-    // initialize some parameters
-    double initialParams[N] = {0};
+    // initialize some parameters to some bad estimate of the oracle
+    unsigned seed = std::chrono::system_clock::now().time_since_epoch().count();
+    std::default_random_engine generator(seed);
+    std::uniform_real_distribution<double> paramDistribution(-1, 1);
+    double initialParams[N] = {
+        oracleParams[0] + paramDistribution(generator),
+        oracleParams[1] + paramDistribution(generator),
+        oracleParams[2] + paramDistribution(generator)
+    };
 
 
     // Define pointers towards our evaluation function and gradient function
@@ -126,4 +137,8 @@ int main() {
     std::cout << "\ta: " << initialParams[0] << std::endl;
     std::cout << "\tb: " << initialParams[1] << std::endl;
     std::cout << "\tc: " << initialParams[2] << std::endl;
+    std::cout << "Error from oracle" << std::endl;
+    std::cout << "\ta: " << oracleParams[0] - initialParams[0]  << std::endl;
+    std::cout << "\tb: " << oracleParams[1] - initialParams[1]  << std::endl;
+    std::cout << "\tc: " << oracleParams[2] - initialParams[2]  << std::endl;
 }
