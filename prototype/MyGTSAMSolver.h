@@ -151,7 +151,10 @@ bool MyGTSAMSolver<RowsMeasurements, RowsParameters>::fit() {
         gradientFunction(jacobianMatrix, parameters, x);
         hessian.noalias() = jacobianMatrix.transpose() * jacobianMatrix;
 
-        // Compute the derivatives of parameters w.r.t. the residual
+        // Compute the right hand side of the update equation:
+        // -∇f(x) = J^T(y - y_hat)
+        // In other words, this is a  negative derivative of the evaluation
+        // function w.r.t. the model parameters
         for (int m = 0; m < RowsMeasurements; m++) {
             double currY = y[m];
             auto currentGradient = jacobianMatrix.row(m);
