@@ -130,7 +130,7 @@ bool MyGTSAMSolver<RowsMeasurements, RowsParameters>::fit() {
 
     // TODO: make these input arguments
     int maxIterations = 500;
-    double lambda = 0.1;
+    double lambda = 0.01;
     double upFactor = 10.0;
     double downFactor = 1.0/10.0;
     double targetDeltaError = 0.01;
@@ -169,10 +169,9 @@ bool MyGTSAMSolver<RowsMeasurements, RowsParameters>::fit() {
         double deltaError = 0;
 
         while (illConditioned && iteration < maxIterations) {
-            // TODO(Jeremy): Debug this line
-            // for (int i = 0; i < RowsParameters; i++) {
-            //     hessian(i, i) *= multFactor;
-            // }
+            for (int i = 0; i < RowsParameters; i++) {
+                hessian(i, i) = hessian(i, i) * multFactor;
+            }
 
             // Computes an in-place LL^T Cholesky decomposition, which saves
             // on some memory overhead

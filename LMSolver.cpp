@@ -83,7 +83,7 @@ void generatePoints(double (&xValues)[M][N], double (&yValues)[M], double(&oracl
     unsigned seed = std::chrono::system_clock::now().time_since_epoch().count();
 
     std::default_random_engine generator(seed);
-    std::uniform_real_distribution<double> paramDistribution(0, 50);
+    std::uniform_real_distribution<double> paramDistribution(0, 10);
     std::normal_distribution<double> yDistribution(0, .5);
     std::normal_distribution<double> xDistribution(0, .5);
     std::uniform_real_distribution<double> xCoords(-100, 100);
@@ -133,7 +133,7 @@ int main() {
     // initialize some parameters to some bad estimate of the oracle
     unsigned seed = std::chrono::system_clock::now().time_since_epoch().count();
     std::default_random_engine generator(seed);
-    std::uniform_real_distribution<double> paramDistribution(-3, 3);
+    std::uniform_real_distribution<double> paramDistribution(-1, 1);
     double initialParams[N] = {
         oracleParams[0] + paramDistribution(generator),
         oracleParams[1] + paramDistribution(generator),
