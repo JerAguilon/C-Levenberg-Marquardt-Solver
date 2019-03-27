@@ -113,6 +113,8 @@ double MyGTSAMSolver<RowsMeasurements, RowsParameters>::getError(
  */
 template<int RowsMeasurements, int RowsParameters>
 bool MyGTSAMSolver<RowsMeasurements, RowsParameters>::fit() {
+    bool success = false;
+
     ParamMatrix parameters(&_parameters[0], RowsParameters, 1);
     ParamMatrix newParameters(&_newParameters[0], RowsParameters, 1);
 
@@ -194,12 +196,15 @@ bool MyGTSAMSolver<RowsMeasurements, RowsParameters>::fit() {
         currentError = newError;
         lambda *= downFactor;
 
-        if (!illConditioned && (-deltaError < targetDeltaError)) break;
+        if (!illConditioned && (-deltaError < targetDeltaError)) {
+            success = true;
+            break;
+        };
     }
     std::cout << "Current Error: " << currentError << std::endl;
     std::cout << "Mean Error: " << currentError / RowsMeasurements << std::endl;
     std::cout << "Total iterations: " << iteration << std::endl << std::endl;
-    return true;
+    return success;
 }
 
 
