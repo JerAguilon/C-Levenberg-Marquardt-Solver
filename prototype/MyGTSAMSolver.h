@@ -169,6 +169,11 @@ bool MyGTSAMSolver<RowsMeasurements, RowsParameters>::fit() {
         double deltaError = 0;
 
         while (illConditioned && iteration < maxIterations) {
+            // TODO(Jeremy): Debug this line
+            // for (int i = 0; i < RowsParameters; i++) {
+            //     hessian(i, i) *= multFactor;
+            // }
+
             // Computes an in-place LL^T Cholesky decomposition, which saves
             // on some memory overhead
             Eigen::LLT<Eigen::Ref<SquareParamMatrix> > lu(hessian);
