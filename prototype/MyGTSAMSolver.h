@@ -46,7 +46,8 @@ private:
     double (&_x)[RowsMeasurements][RowsParams];
     double (&_y)[RowsMeasurements];
 
-    double _hessian[RowsParams][RowsParams];
+    double _hessian[RowsParams][RowsParams],
+           _lowerTriangle[RowsParams][RowsParams];
 
     double _derivative[RowsParams],
            _jacobianMatrix[RowsMeasurements][RowsParams];
@@ -125,6 +126,7 @@ bool MyGTSAMSolver<RowsMeasurements, RowsParameters>::fit() {
     ParamMatrix delta(&_delta[0], RowsParameters);
 
     SquareParamMatrix hessian(&_hessian[0][0], RowsParameters, RowsParameters);
+    SquareParamMatrix lowerTriangle(&_lowerTriangle[0][0], RowsParameters, RowsParameters);
 
     JacobianMatrix jacobianMatrix(&_jacobianMatrix[0][0], RowsMeasurements, RowsParameters);
 
@@ -173,14 +175,15 @@ bool MyGTSAMSolver<RowsMeasurements, RowsParameters>::fit() {
                 hessian(i, i) = hessian(i, i) * multFactor;
             }
 
-            // Computes an in-place LL^T Cholesky decomposition, which saves
-            // on some memory overhead
-            Eigen::LLT<Eigen::Ref<SquareParamMatrix> > lu(hessian);
+            // Computes an LLT decomposition inplace, which saves on some memory
+            // overhead
+            lowerTriangle = hessian;
+            Eigen::LLT<Eigen::Ref<SquareParamMatrix>> llt(lowerTriangle);
 
-            // The decoposition failed if info() returns anything other than 0
-            illConditioned = lu.info() != 0;
+            // The decoposition fails if the matrix is not positive semi definite
+            illConditioned = (llt.info() != Eigen::ComputationInfo::Success);
             if (!illConditioned) {
-                solveCholesky(hessian, derivative, delta);
+                solveCholesky(lowerTriangle, derivative, delta);
                 for (int i = 0; i < RowsParameters; i++) {
                     newParameters(i) = parameters(i) + delta(i);
                 }
@@ -210,7 +213,7 @@ bool MyGTSAMSolver<RowsMeasurements, RowsParameters>::fit() {
     }
     std::cout << "Current Error: " << currentError << std::endl;
     std::cout << "Mean Error: " << currentError / RowsMeasurements << std::endl;
-    std::cout << "Total iterations: " << iteration << std::endl << std::endl;
+    std::cout << "Total iterations: " << iteration + 1 << std::endl << std::endl;
     return success;
 }
 
