@@ -10,7 +10,7 @@
 
 #include "prototype/MyGTSAMSolver.h"
 
-const int M = 1000; // Number of measurements
+const int M = 7000; // Number of measurements
 const int N = 3; // Number of parameters: a, b, c
 
 using Solver = MyGTSAMSolver<M, N>;
@@ -86,6 +86,7 @@ void generatePoints(double (&xValues)[M][N], double (&yValues)[M], double(&oracl
     std::uniform_real_distribution<double> paramDistribution(0, 50);
     std::normal_distribution<double> yDistribution(0, .5);
     std::normal_distribution<double> xDistribution(0, .5);
+    std::uniform_real_distribution<double> xCoords(-100, 100);
 
     double a = paramDistribution(generator);
     double b = paramDistribution(generator);
@@ -102,7 +103,8 @@ void generatePoints(double (&xValues)[M][N], double (&yValues)[M], double(&oracl
     std::cout <<  "\t b:" << b << std::endl;
     std::cout <<  "\t c:" << c << std::endl << std::endl;
 
-    for (int x = 0; x < M; x++) {
+    for (int i = 0; i < M; i++) {
+        double x = xCoords(generator);
         double x2 = x * x + xDistribution(generator);
         double x1 = x + xDistribution(generator);
         double x0 = 1 + xDistribution(generator);
@@ -112,10 +114,10 @@ void generatePoints(double (&xValues)[M][N], double (&yValues)[M], double(&oracl
 
         double noisyY = evaluationFunction(parameters, xRow) + yDistribution(generator);
 
-        xValues[x][0] = xArr[0];
-        xValues[x][1] = xArr[1];
-        xValues[x][2] = xArr[2];
-        yValues[x] = noisyY;
+        xValues[i][0] = xArr[0];
+        xValues[i][1] = xArr[1];
+        xValues[i][2] = xArr[2];
+        yValues[i] = noisyY;
     }
 }
 
@@ -147,7 +149,7 @@ int main() {
     // Initialize the solver and fit, which updates initialParams
     // to have the final result. Add a flag so that we crash if
     // a malloc occurs.
-    Eigen::internal::set_is_malloc_allowed(false);
+    // Eigen::internal::set_is_malloc_allowed(false);
     Solver mysolver(e, g, initialParams, xValues, yValues);
     mysolver.fit();
     Eigen::internal::set_is_malloc_allowed(true);

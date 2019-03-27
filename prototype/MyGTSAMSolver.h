@@ -6,7 +6,7 @@
 #include <algorithm>
 #include <math.h>
 
-#include <Eigen/Core>
+#include <Eigen/Dense>
 
 
 /**
@@ -46,8 +46,7 @@ private:
     double (&_x)[RowsMeasurements][RowsParams];
     double (&_y)[RowsMeasurements];
 
-    double _hessian[RowsParams][RowsParams],
-           _choleskyDecomposition[RowsParams][RowsParams];
+    double _hessian[RowsParams][RowsParams];
 
     double _derivative[RowsParams],
            _jacobianMatrix[RowsMeasurements][RowsParams];
@@ -61,10 +60,6 @@ private:
         YMatrix y
     );
 
-    bool getCholeskyDecomposition(
-        SquareParamMatrix &choleskyDecomposition,
-        SquareParamMatrix &hessian
-    );
     void solveCholesky(
         SquareParamMatrix &choleskyDecomposition,
         ParamMatrix &derivative,
@@ -86,13 +81,16 @@ MyGTSAMSolver<RowsMeasurements, RowsParameters>::MyGTSAMSolver(
     _x(x),
     _y(y),
     _hessian{},
-    _choleskyDecomposition{},
     _derivative{},
     _jacobianMatrix{},
     _delta{},
     _newParameters{}
 {}
 
+/**
+ * Computes the sum of of square residuals error of a given parameter
+ * configuration.
+ */
 template<int RowsMeasurements, int RowsParameters>
 double MyGTSAMSolver<RowsMeasurements, RowsParameters>::getError(
     ParamMatrix parameters,
@@ -109,6 +107,10 @@ double MyGTSAMSolver<RowsMeasurements, RowsParameters>::getError(
     return error;
 }
 
+
+/**
+ * Computes the Levenberg-Marquadt solution to a nonlinear system.
+ */
 template<int RowsMeasurements, int RowsParameters>
 bool MyGTSAMSolver<RowsMeasurements, RowsParameters>::fit() {
     ParamMatrix parameters(&_parameters[0], RowsParameters, 1);
@@ -121,12 +123,11 @@ bool MyGTSAMSolver<RowsMeasurements, RowsParameters>::fit() {
     ParamMatrix delta(&_delta[0], RowsParameters);
 
     SquareParamMatrix hessian(&_hessian[0][0], RowsParameters, RowsParameters);
-    SquareParamMatrix choleskyDecomposition(&_choleskyDecomposition[0][0], RowsParameters, RowsParameters);
 
     JacobianMatrix jacobianMatrix(&_jacobianMatrix[0][0], RowsMeasurements, RowsParameters);
 
     // TODO: make these input arguments
-    int maxIterations = 5000;
+    int maxIterations = 500;
     double lambda = 0.1;
     double upFactor = 10.0;
     double downFactor = 1.0/10.0;
@@ -163,9 +164,14 @@ bool MyGTSAMSolver<RowsMeasurements, RowsParameters>::fit() {
         double deltaError = 0;
 
         while (illConditioned && iteration < maxIterations) {
-            illConditioned = getCholeskyDecomposition(choleskyDecomposition, hessian);
+            // Computes an in-place LL^T Cholesky decomposition, which saves
+            // on some memory overhead
+            Eigen::LLT<Eigen::Ref<SquareParamMatrix> > lu(hessian);
+
+            // The decoposition failed if info() returns anything other than 0
+            illConditioned = lu.info() != 0;
             if (!illConditioned) {
-                solveCholesky(choleskyDecomposition, derivative, delta);
+                solveCholesky(hessian, derivative, delta);
                 for (int i = 0; i < RowsParameters; i++) {
                     newParameters(i) = parameters(i) + delta(i);
                 }
@@ -196,35 +202,11 @@ bool MyGTSAMSolver<RowsMeasurements, RowsParameters>::fit() {
     return true;
 }
 
-template<int RowsMeasurements, int RowsParameters>
-bool MyGTSAMSolver<RowsMeasurements, RowsParameters>::getCholeskyDecomposition(
-    SquareParamMatrix &choleskyDecomposition, SquareParamMatrix &hessian
-) {
-    int i, j, k;
-    double sum;
 
-    int n = RowsParameters;
-
-    for (i = 0; i < n; i++) {
-        for (j = 0; j < i; j++) {
-            sum = 0;
-            for (k = 0; k < j; k++) {
-                sum += choleskyDecomposition(i, k) * choleskyDecomposition(j, k);
-            }
-            choleskyDecomposition(i, j) = (hessian(i, j) - sum) / choleskyDecomposition(j, j);
-        }
-
-        sum = 0;
-        for (k = 0; k < i; k++) {
-            sum += choleskyDecomposition(i, k) * choleskyDecomposition(i, k);
-        }
-        sum = hessian(i, i) - sum;
-        if (sum < TOL) return true;
-        choleskyDecomposition(i, i) = sqrt(sum);
-    }
-    return 0;
-}
-
+/**
+ * Solves an L*L^T decomposed hessian matrix and stores the result into
+ * delta
+ */
 template<int RowsMeasurements, int RowsParameters>
 void MyGTSAMSolver<RowsMeasurements, RowsParameters>::solveCholesky(
     SquareParamMatrix &choleskyDecomposition,
