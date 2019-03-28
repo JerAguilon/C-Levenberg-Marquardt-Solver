@@ -1,5 +1,6 @@
-#ifndef MY_GTSAM_SOLVER_H
-#define MY_GTSAM_SOLVER_H
+#ifndef LIGHT_LEVENBERG_MARQUARDT_OPTIIMIZER
+#define LIGHT_LEVENBERG_MARQUARDT_OPTIIMIZER
+
 #define TOL 1e-30
 
 #include <iostream>
@@ -15,7 +16,7 @@
  *  Solves the equation X[RowsMeasurements _x RowsParam] * P[RowsParam] = Y[RowsMeasurements]
  */
 template<int RowsMeasurements, int RowsParams>
-class MyGTSAMSolver {
+class LightLevenbergMarquardtOptimizer {
 
 public:
     typedef Eigen::Map<Eigen::Matrix<double, RowsParams, 1>> ParamMatrix;
@@ -24,7 +25,7 @@ public:
 
     DataManipulator<RowsMeasurements, RowsParams> *dataManipulator;
 
-    MyGTSAMSolver(
+    LightLevenbergMarquardtOptimizer(
         DataManipulator<RowsMeasurements, RowsParams> *dataManipulator,
         double (&initialParams)[RowsParams]
     );
@@ -59,7 +60,7 @@ private:
 };
 
 template<int RowsMeasurements, int RowsParameters>
-MyGTSAMSolver<RowsMeasurements, RowsParameters>::MyGTSAMSolver(
+LightLevenbergMarquardtOptimizer<RowsMeasurements, RowsParameters>::LightLevenbergMarquardtOptimizer(
     DataManipulator<RowsMeasurements, RowsParameters> *dataManipulator,
     double (&initialParams)[RowsParameters]
 ):
@@ -78,7 +79,7 @@ MyGTSAMSolver<RowsMeasurements, RowsParameters>::MyGTSAMSolver(
  * configuration.
  */
 template<int RowsMeasurements, int RowsParameters>
-double MyGTSAMSolver<RowsMeasurements, RowsParameters>::getError(ResidualMatrix residuals)
+double LightLevenbergMarquardtOptimizer<RowsMeasurements, RowsParameters>::getError(ResidualMatrix residuals)
 {
     return (residuals.transpose() * residuals)(0, 0);
 }
@@ -88,7 +89,7 @@ double MyGTSAMSolver<RowsMeasurements, RowsParameters>::getError(ResidualMatrix 
  * Computes the Levenberg-Marquadt solution to a nonlinear system.
  */
 template<int RowsMeasurements, int RowsParameters>
-bool MyGTSAMSolver<RowsMeasurements, RowsParameters>::fit() {
+bool LightLevenbergMarquardtOptimizer<RowsMeasurements, RowsParameters>::fit() {
     bool success = false;
 
     ParamMatrix parameters(&_parameters[0], RowsParameters, 1);
@@ -193,7 +194,7 @@ bool MyGTSAMSolver<RowsMeasurements, RowsParameters>::fit() {
  * delta
  */
 template<int RowsMeasurements, int RowsParameters>
-void MyGTSAMSolver<RowsMeasurements, RowsParameters>::solveCholesky(
+void LightLevenbergMarquardtOptimizer<RowsMeasurements, RowsParameters>::solveCholesky(
     SquareParamMatrix &choleskyDecomposition,
     ParamMatrix &derivative,
     ParamMatrix &delta

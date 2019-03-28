@@ -8,13 +8,13 @@
 #define EIGEN_RUNTIME_NO_MALLOC
 #include <Eigen/Core>
 
-#include "prototype/MyGTSAMSolver.h"
-#include "prototype/DataManipulator.h"
+#include "solver/LightLevenbergMarquardtOptimizer.h"
+#include "solver/DataManipulator.h"
 
 const int M = 7000; // Number of measurements
 const int N = 3; // Number of parameters: a, b, c
 
-using Solver = MyGTSAMSolver<M, N>;
+using Solver = LightLevenbergMarquardtOptimizer<M, N>;
 using JacobianMatrix = Solver::JacobianMatrix;
 using ParamMatrix = Solver::ParamMatrix;
 using XRow = Eigen::Matrix<double, N, 1>;
@@ -152,7 +152,6 @@ int main() {
     double xValues[M][N] = {0};
     double yValues[M] = {0};
     generatePoints(xValues, yValues, oracleParams);
-
 
     // initialize some parameters to some bad estimate of the oracle
     unsigned seed = std::chrono::system_clock::now().time_since_epoch().count();

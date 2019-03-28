@@ -6,7 +6,7 @@ include_directories(${EIGEN3_INCLUDE_DIR})
 message(${EIGEN3_INCLUDE_DIR})
 
 file(GLOB src_files
-    "LMSolver.cpp"
+    "demo.cpp"
 )
 message(${src_files})
 
