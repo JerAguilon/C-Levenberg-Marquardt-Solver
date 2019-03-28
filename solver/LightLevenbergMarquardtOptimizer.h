@@ -1,8 +1,6 @@
 #ifndef LIGHT_LEVENBERG_MARQUARDT_OPTIIMIZER
 #define LIGHT_LEVENBERG_MARQUARDT_OPTIIMIZER
 
-#define TOL 1e-30
-
 #include <iostream>
 #include <algorithm>
 #include <math.h>
@@ -109,7 +107,7 @@ bool LightLevenbergMarquardtOptimizer<RowsMeasurements, RowsParameters>::fit() {
     int maxIterations = 500;
     double lambda = 0.01;
     double upFactor = 10.0;
-    double downFactor = 1.0/10.0;
+   double downFactor = 1.0/10.0;
     double targetDeltaError = 0.01;
 
     dataManipulator.fillResiduals(residuals, parameters);
