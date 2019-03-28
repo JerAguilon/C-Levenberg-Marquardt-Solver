@@ -9,21 +9,20 @@
 #include <Eigen/Core>
 
 #include "prototype/MyGTSAMSolver.h"
+#include "prototype/DataManipulator.h"
 
 const int M = 7000; // Number of measurements
 const int N = 3; // Number of parameters: a, b, c
 
 using Solver = MyGTSAMSolver<M, N>;
-using EvaluationFunction = Solver::EvaluationFunction;
-using GradientFunction = Solver::GradientFunction;
 using JacobianMatrix = Solver::JacobianMatrix;
 using ParamMatrix = Solver::ParamMatrix;
-using XRow = Solver::XRow;
-using XMatrix = Solver::XMatrix;
-
+using XRow = Eigen::Matrix<double, N, 1>;
+using XMatrix = Eigen::Map<Eigen::Matrix<double, M, N, Eigen::RowMajor>>;
+using YMatrix = Eigen::Map<Eigen::Matrix<double, M, 1>>;
 
 /**
- * A simple linear evaluation function. Using this will likely yield quite low errors.
+ * A dot product between the parameters and a row of data.
  */
 double dotProductEvaluationFunction(const ParamMatrix &params, const XRow &x) {
     return params[0] * x[0] + params[1] * x[1] + params[2] * x[2];
@@ -31,52 +30,77 @@ double dotProductEvaluationFunction(const ParamMatrix &params, const XRow &x) {
 
 
 /**
- * An arbitrary (meaningless) nonlinear function for demonstration purposes
+ * An arbitrary (meaningless) nonlinear function for demonstration purposes. We will
+ * fit this nonlinear function using LM-optimization
  */
 double evaluationFunction(const ParamMatrix &params, const XRow &x) {
     return x[0] * params[0] / params[1] + dotProductEvaluationFunction(params, x) + exp(
-        (params[0] - params[1] + params[2]) / 30
+        (params[0] - params[1] + x[1]) / 30
     );
 }
 
 
 /**
- * Simple gradient function for an estimator. For demo purposes,
- * the gradients are not calculated analytically. Of course, you
- * can get significant runtime benefits by implementing your gradient
- * analytically and vectorize this.
+ * This is an implementation of a class that is fed to the LM Solver.
+ * It simply implements the logic to fill out a jacobian matrix
+ * and a residual matrix, which GTSAM uses to calculate residuals.
  */
-void gradientFunction(JacobianMatrix &jacobian, ParamMatrix &params, const XMatrix &x) {
-    float epsilon = 1e-5f;
-    XRow jacobianRow;
-    for (int m = 0; m < M; m++) {
-        for (int iParam = 0; iParam < 3; iParam++) {
-            double currParam = params[iParam];
+class MyManipulator : public DataManipulator<M, N> {
+public:
+    MyManipulator(double (&x)[M][N], double (&y)[M]):
+        x(&x[0][0], M, N),
+        y(&y[0], M, 1)
+    {}
 
-            double paramPlus = currParam + epsilon;
-            double paramMinus = currParam - epsilon;
+    /**
+     * Fills the jacobian matrix from first principles. Computing a derivative
+     * analytically would speed up this operation.
+     */
+    void fillJacobian(JacobianMatrix &jacobian, ParamMatrix &params) override {
+        float epsilon = 1e-5f;
+        XRow jacobianRow;
+        for (int m = 0; m < M; m++) {
+            for (int iParam = 0; iParam < 3; iParam++) {
+                double currParam = params[iParam];
 
-            params[iParam] = paramPlus;
-            double evalPlus = evaluationFunction(params, x.row(m));
+                double paramPlus = currParam + epsilon;
+                double paramMinus = currParam - epsilon;
 
-            params[iParam] = paramMinus;
-            double evalMinus = evaluationFunction(params, x.row(m));
+                params[iParam] = paramPlus;
+                double evalPlus = evaluationFunction(params, x.row(m));
 
-            params[iParam] = currParam;
+                params[iParam] = paramMinus;
+                double evalMinus = evaluationFunction(params, x.row(m));
 
-            double derivative = (evalPlus - evalMinus) / (2 * epsilon);
+                params[iParam] = currParam;
 
-            jacobianRow[iParam] = derivative;
+                double derivative = (evalPlus - evalMinus) / (2 * epsilon);
+
+                jacobianRow[iParam] = derivative;
+            }
+            jacobian.row(m).noalias() = jacobianRow;
         }
-        jacobian.row(m).noalias() = jacobianRow;
     }
-}
 
+    /**
+     * Fills a residual matrix with according to the evaluation function.
+     */
+    void fillResiduals(ResidualMatrix &residuals, ParamMatrix &params) override {
+        for (int i = 0; i < M; i++) {
+            double residual = evaluationFunction(params, x.row(i)) - y[i];
+            residuals(i) = residual;
+        }
+    };
+private:
+    XMatrix x;
+    YMatrix y;
+
+};
 
 
 /**
  * Generates N (N=3 for this demo) random parameters and uses them to create
- * M (M=100) quadratic points with some Gaussian noise. Fiddle with the noise
+ * M points with some Gaussian noise. Fiddle with the noise
  * and notice how the final error increases when the noise increases
  */
 void generatePoints(double (&xValues)[M][N], double (&yValues)[M], double(&oracleParams)[N]) {
@@ -84,8 +108,8 @@ void generatePoints(double (&xValues)[M][N], double (&yValues)[M], double(&oracl
 
     std::default_random_engine generator(seed);
     std::uniform_real_distribution<double> paramDistribution(0, 10);
-    std::normal_distribution<double> yDistribution(0, .5);
-    std::normal_distribution<double> xDistribution(0, .5);
+    std::normal_distribution<double> yNoise(0, .5);
+    std::normal_distribution<double> xNoise(0, .5);
     std::uniform_real_distribution<double> xCoords(-100, 100);
 
     double a = paramDistribution(generator);
@@ -105,14 +129,14 @@ void generatePoints(double (&xValues)[M][N], double (&yValues)[M], double(&oracl
 
     for (int i = 0; i < M; i++) {
         double x = xCoords(generator);
-        double x2 = x * x + xDistribution(generator);
-        double x1 = x + xDistribution(generator);
-        double x0 = 1 + xDistribution(generator);
+        double x2 = x * x + xNoise(generator);
+        double x1 = x + xNoise(generator);
+        double x0 = 1 + xNoise(generator);
         double xArr[N] = {x2, x1, x0};
 
         XRow xRow(&xArr[0]);
 
-        double noisyY = evaluationFunction(parameters, xRow) + yDistribution(generator);
+        double noisyY = evaluationFunction(parameters, xRow) + yNoise(generator);
 
         xValues[i][0] = xArr[0];
         xValues[i][1] = xArr[1];
@@ -142,15 +166,15 @@ int main() {
     double *initialParamsPtr = initialParams;
 
 
-    // Define pointers towards our evaluation function and gradient function
-    EvaluationFunction e =  &evaluationFunction;
-    GradientFunction g = &gradientFunction;
+    // Create our data manipulator, which is used to feed the jacobian and residuals
+    // to the LM solver
+    MyManipulator manipulator(xValues, yValues);
 
     // Initialize the solver and fit, which updates initialParams
     // to have the final result. Add a flag so that we crash if
     // a malloc occurs.
     Eigen::internal::set_is_malloc_allowed(false);
-    Solver mysolver(e, g, initialParams, xValues, yValues);
+    Solver mysolver(&manipulator, initialParams);
     bool result = mysolver.fit();
     std::cout << "Fit success: " <<  result << std::endl;;
     Eigen::internal::set_is_malloc_allowed(true);

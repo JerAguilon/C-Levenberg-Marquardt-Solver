@@ -8,6 +8,8 @@
 
 #include <Eigen/Dense>
 
+#include "DataManipulator.h"
+
 
 /**
  *  Solves the equation X[RowsMeasurements _x RowsParam] * P[RowsParam] = Y[RowsMeasurements]
@@ -17,34 +19,26 @@ class MyGTSAMSolver {
 
 public:
     typedef Eigen::Map<Eigen::Matrix<double, RowsParams, 1>> ParamMatrix;
-    typedef Eigen::Map<Eigen::Matrix<double, RowsMeasurements, RowsParams, Eigen::RowMajor>> XMatrix;
-    typedef Eigen::Map<Eigen::Matrix<double, RowsMeasurements, 1>> YMatrix;
-    typedef Eigen::Matrix<double, RowsParams, 1> XRow;
     typedef Eigen::Map<Eigen::Matrix<double, RowsMeasurements, RowsParams, Eigen::RowMajor>> JacobianMatrix;
+    typedef Eigen::Map<Eigen::Matrix<double, RowsMeasurements, 1>> ResidualMatrix;
 
-    typedef double (*EvaluationFunction)(const ParamMatrix &params, const XRow &x);
-    typedef void (*GradientFunction)(JacobianMatrix &jacobian, ParamMatrix &params, const XMatrix &x);
-
-    EvaluationFunction evaluationFunction;
-    GradientFunction gradientFunction;
+    DataManipulator<RowsMeasurements, RowsParams> *dataManipulator;
 
     MyGTSAMSolver(
-        EvaluationFunction evaluationFunction,
-        GradientFunction gradientFunction,
-        double (&initialParams)[RowsParams],
-        double (&x)[RowsMeasurements][RowsParams],
-        double (&y)[RowsMeasurements]
+        DataManipulator<RowsMeasurements, RowsParams> *dataManipulator,
+        double (&initialParams)[RowsParams]
     );
 
     bool fit();
 
 private:
+
     // Used internally for Hessians, and Cholesky Triangle Matrices
     typedef Eigen::Map<Eigen::Matrix<double, RowsParams, RowsParams, Eigen::RowMajor>> SquareParamMatrix;
 
     double (&_parameters)[RowsParams];
-    double (&_x)[RowsMeasurements][RowsParams];
-    double (&_y)[RowsMeasurements];
+
+    double (_residuals)[RowsMeasurements];
 
     double _hessian[RowsParams][RowsParams],
            _lowerTriangle[RowsParams][RowsParams];
@@ -55,11 +49,7 @@ private:
     double _newParameters[RowsParams],
            _delta[RowsParams];
 
-    double getError(
-        ParamMatrix parameters,
-        XMatrix x,
-        YMatrix y
-    );
+    double getError(ResidualMatrix residuals);
 
     void solveCholesky(
         SquareParamMatrix &choleskyDecomposition,
@@ -70,21 +60,16 @@ private:
 
 template<int RowsMeasurements, int RowsParameters>
 MyGTSAMSolver<RowsMeasurements, RowsParameters>::MyGTSAMSolver(
-    EvaluationFunction evaluationFunction,
-    GradientFunction gradientFunction,
-    double (&initialParams)[RowsParameters],
-    double (&x)[RowsMeasurements][RowsParameters],
-    double (&y)[RowsMeasurements]
+    DataManipulator<RowsMeasurements, RowsParameters> *dataManipulator,
+    double (&initialParams)[RowsParameters]
 ):
-    evaluationFunction(evaluationFunction),
-    gradientFunction(gradientFunction),
+    dataManipulator(dataManipulator),
     _parameters(initialParams),
-    _x(x),
-    _y(y),
     _hessian{},
     _derivative{},
     _jacobianMatrix{},
     _delta{},
+    _residuals{},
     _newParameters{}
 {}
 
@@ -93,19 +78,9 @@ MyGTSAMSolver<RowsMeasurements, RowsParameters>::MyGTSAMSolver(
  * configuration.
  */
 template<int RowsMeasurements, int RowsParameters>
-double MyGTSAMSolver<RowsMeasurements, RowsParameters>::getError(
-    ParamMatrix parameters,
-    XMatrix x,
-    YMatrix y)
+double MyGTSAMSolver<RowsMeasurements, RowsParameters>::getError(ResidualMatrix residuals)
 {
-    double residual;
-    double error = 0;
-
-    for (int i = 0; i < RowsMeasurements; i++) {
-        residual = evaluationFunction(parameters, x.row(i)) - y[i];
-        error += residual * residual;
-    }
-    return error;
+    return (residuals.transpose() * residuals)(0, 0);
 }
 
 
@@ -119,8 +94,7 @@ bool MyGTSAMSolver<RowsMeasurements, RowsParameters>::fit() {
     ParamMatrix parameters(&_parameters[0], RowsParameters, 1);
     ParamMatrix newParameters(&_newParameters[0], RowsParameters, 1);
 
-    XMatrix x(&_x[0][0], RowsMeasurements, RowsParameters);
-    YMatrix y(&_y[0], RowsMeasurements, 1);
+    ResidualMatrix residuals(&_residuals[0], RowsMeasurements, 1);
 
     ParamMatrix derivative(&_derivative[0], RowsParameters);
     ParamMatrix delta(&_delta[0], RowsParameters);
@@ -137,7 +111,8 @@ bool MyGTSAMSolver<RowsMeasurements, RowsParameters>::fit() {
     double downFactor = 1.0/10.0;
     double targetDeltaError = 0.01;
 
-    double currentError = getError(parameters, x, y);
+    dataManipulator->fillResiduals(residuals, parameters);
+    double currentError = getError(residuals);
 
     int iteration;
     for (iteration=0; iteration < maxIterations; iteration++) {
@@ -148,22 +123,16 @@ bool MyGTSAMSolver<RowsMeasurements, RowsParameters>::fit() {
         jacobianMatrix.setZero();
         hessian.setZero();
 
-        // Build out the jacobian and the _hessian matrices
+        // Build out the jacobian and the hessian matrices
         // H = J^T * J
-        gradientFunction(jacobianMatrix, parameters, x);
+        dataManipulator->fillJacobian(jacobianMatrix, parameters);
         hessian.noalias() = jacobianMatrix.transpose() * jacobianMatrix;
 
         // Compute the right hand side of the update equation:
         // -∇f(x) = J^T(y - y_hat)
         // In other words, this is a  negative derivative of the evaluation
         // function w.r.t. the model parameters
-        for (int m = 0; m < RowsMeasurements; m++) {
-            double currY = y[m];
-            auto currentGradient = jacobianMatrix.row(m);
-            for (int i = 0; i < RowsParameters; i++) {
-                derivative[i] += (currY - evaluationFunction(parameters, x.row(m))) * currentGradient(i);
-            }
-        }
+        derivative.noalias() = jacobianMatrix.transpose() * -residuals;
 
         double multFactor = 1 + lambda;
         bool illConditioned = true;
@@ -187,7 +156,8 @@ bool MyGTSAMSolver<RowsMeasurements, RowsParameters>::fit() {
                 for (int i = 0; i < RowsParameters; i++) {
                     newParameters(i) = parameters(i) + delta(i);
                 }
-                newError = getError(newParameters, x, y);
+                dataManipulator->fillResiduals(residuals, newParameters);
+                newError = getError(residuals);
                 deltaError = newError - currentError;
                 illConditioned = deltaError > 0;
             }
