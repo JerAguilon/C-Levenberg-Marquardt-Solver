@@ -56,7 +56,7 @@ public:
      * Fills the jacobian matrix from first principles. Computing a derivative
      * analytically would speed up this operation.
      */
-    void fillJacobian(JacobianMatrix &jacobian, ParamMatrix &params) override {
+    void fillJacobian(JacobianMatrix &jacobian, ParamMatrix &params) const override {
         float epsilon = 1e-5f;
         XRow jacobianRow;
         for (int m = 0; m < M; m++) {
@@ -85,7 +85,7 @@ public:
     /**
      * Fills a residual matrix with according to the evaluation function.
      */
-    void fillResiduals(ResidualMatrix &residuals, ParamMatrix &params) override {
+    void fillResiduals(ResidualMatrix &residuals, ParamMatrix &params) const override {
         for (int i = 0; i < M; i++) {
             double residual = evaluationFunction(params, x.row(i)) - y[i];
             residuals(i) = residual;
@@ -173,7 +173,7 @@ int main() {
     // to have the final result. Add a flag so that we crash if
     // a malloc occurs.
     Eigen::internal::set_is_malloc_allowed(false);
-    Solver mysolver(&manipulator, initialParams);
+    Solver mysolver(manipulator, initialParams);
     bool result = mysolver.fit();
     std::cout << "Fit success: " <<  result << std::endl;;
     Eigen::internal::set_is_malloc_allowed(true);

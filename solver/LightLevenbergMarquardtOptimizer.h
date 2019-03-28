@@ -23,10 +23,10 @@ public:
     typedef Eigen::Map<Eigen::Matrix<double, RowsMeasurements, RowsParams, Eigen::RowMajor>> JacobianMatrix;
     typedef Eigen::Map<Eigen::Matrix<double, RowsMeasurements, 1>> ResidualMatrix;
 
-    DataManipulator<RowsMeasurements, RowsParams> *dataManipulator;
+    const DataManipulator<RowsMeasurements, RowsParams> &dataManipulator;
 
     LightLevenbergMarquardtOptimizer(
-        DataManipulator<RowsMeasurements, RowsParams> *dataManipulator,
+        const DataManipulator<RowsMeasurements, RowsParams> &dataManipulator,
         double (&initialParams)[RowsParams]
     );
 
@@ -61,7 +61,7 @@ private:
 
 template<int RowsMeasurements, int RowsParameters>
 LightLevenbergMarquardtOptimizer<RowsMeasurements, RowsParameters>::LightLevenbergMarquardtOptimizer(
-    DataManipulator<RowsMeasurements, RowsParameters> *dataManipulator,
+    const DataManipulator<RowsMeasurements, RowsParameters> &dataManipulator,
     double (&initialParams)[RowsParameters]
 ):
     dataManipulator(dataManipulator),
@@ -112,7 +112,7 @@ bool LightLevenbergMarquardtOptimizer<RowsMeasurements, RowsParameters>::fit() {
     double downFactor = 1.0/10.0;
     double targetDeltaError = 0.01;
 
-    dataManipulator->fillResiduals(residuals, parameters);
+    dataManipulator.fillResiduals(residuals, parameters);
     double currentError = getError(residuals);
 
     int iteration;
@@ -126,7 +126,7 @@ bool LightLevenbergMarquardtOptimizer<RowsMeasurements, RowsParameters>::fit() {
 
         // Build out the jacobian and the hessian matrices
         // H = J^T * J
-        dataManipulator->fillJacobian(jacobianMatrix, parameters);
+        dataManipulator.fillJacobian(jacobianMatrix, parameters);
         hessian.noalias() = jacobianMatrix.transpose() * jacobianMatrix;
 
         // Compute the right hand side of the update equation:
@@ -157,7 +157,7 @@ bool LightLevenbergMarquardtOptimizer<RowsMeasurements, RowsParameters>::fit() {
                 for (int i = 0; i < RowsParameters; i++) {
                     newParameters(i) = parameters(i) + delta(i);
                 }
-                dataManipulator->fillResiduals(residuals, newParameters);
+                dataManipulator.fillResiduals(residuals, newParameters);
                 newError = getError(residuals);
                 deltaError = newError - currentError;
                 illConditioned = deltaError > 0;
