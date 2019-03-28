@@ -15,5 +15,3 @@ include_directories(prototype/)
 add_executable(${PROJECT_NAME} ${src_files})
 
 target_link_libraries(${PROJECT_NAME} Eigen3::Eigen)
-
-configure_file(measurements.txt measurements.txt COPYONLY)
