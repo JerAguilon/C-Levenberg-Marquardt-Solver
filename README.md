@@ -1,7 +1,7 @@
-# C-Levenberg-Marquardt-Solver
+# Malloc-Free-Levenberg-Marquardt
 
 This is a malloc-free Levenberg-Marquardt optimizer for nonlinear least squares regression.
-It comes with a demonstration fitting an arbitrary nonlinear function. 
+It comes with a demonstration fitting an arbitrary nonlinear function.
 
 # Dependencies
 
