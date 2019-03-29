@@ -21,12 +21,12 @@ using XRow = Eigen::Matrix<double, N, 1>;
 using XMatrix = Eigen::Map<Eigen::Matrix<double, M, N, Eigen::RowMajor>>;
 using YMatrix = Eigen::Map<Eigen::Matrix<double, M, 1>>;
 
+
 /**
  * An arbitrary (meaningless) nonlinear function for demonstration purposes. We will
  * fit this nonlinear function using LM-optimization
  */
-double evaluationFunction(const ParamMatrix &params, const XRow &x)
-{
+double evaluationFunction(const Eigen::Ref<const Eigen::VectorXd> &params, const XRow &x) {
     return x[0] * params[0] / params[1] + params.dot(x) + exp((params[0] - params[1] + x[1]) / 30);
 }
 
@@ -47,13 +47,13 @@ class MyManipulator : public DataManipulator<M, N>
      * Fills the jacobian matrix from first principles. Computing a derivative
      * analytically would speed up this operation.
      */
-    void fillJacobian(JacobianMatrix &jacobian, ParamMatrix &params) const override
+    void fillJacobian(DataManipulator<M,N>::MatrixMap &jacobian, DataManipulator<M,N>::VectorMap &params, int numMeasurements, int numParams) const override
     {
         float epsilon = 1e-5f;
         XRow jacobianRow;
-        for (int m = 0; m < M; m++)
+        for (int m = 0; m < numMeasurements; m++)
         {
-            for (int iParam = 0; iParam < 3; iParam++)
+            for (int iParam = 0; iParam < numParams; iParam++)
             {
                 double currParam = params[iParam];
 
@@ -79,9 +79,9 @@ class MyManipulator : public DataManipulator<M, N>
     /**
      * Fills a residual matrix with according to the evaluation function.
      */
-    void fillResiduals(ResidualMatrix &residuals, ParamMatrix &params) const override
+    void fillResiduals(DataManipulator<M,N>::VectorMap &residuals, DataManipulator<M,N>::VectorMap &params, int residualSize, int paramSize) const override
     {
-        for (int i = 0; i < M; i++)
+        for (int i = 0; i < residualSize; i++)
         {
             double residual = evaluationFunction(params, x.row(i)) - y[i];
             residuals(i) = residual;
@@ -166,10 +166,11 @@ int main()
     // to the LM solver
     MyManipulator manipulator(xValues, yValues);
 
-    // Initialize the solver and fit, which updates initialParams
-    // to have the final result. Add a flag so that we crash if
-    // a malloc occurs.
+    // Crash this program is a single malloc occurs,
+    // as a demonstration of how no mallocs are needed.
     Eigen::internal::set_is_malloc_allowed(false);
+    // Initialize the solver and fit, which updates initialParams
+    // to have the final result.
     Solver mysolver(manipulator, initialParams);
     bool result = mysolver.fit();
     std::cout << "Fit success: " << result << std::endl;
