@@ -104,9 +104,9 @@ LightLevenbergMarquardtOptimizer<RowsMeasurements, RowsParameters>::LightLevenbe
     _jacobianMatrix{},
     _delta{},
     _residuals{},
-    _newParameters
-#endif
+    _newParameters{}
 {}
+#endif
 
 /**
  * Computes the sum of of square residuals error of a given parameter
