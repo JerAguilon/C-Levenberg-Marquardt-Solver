@@ -21,20 +21,13 @@ using XRow = Eigen::Matrix<double, N, 1>;
 using XMatrix = Eigen::Map<Eigen::Matrix<double, M, N, Eigen::RowMajor>>;
 using YMatrix = Eigen::Map<Eigen::Matrix<double, M, 1>>;
 
-/**
- * A dot product between the parameters and a row of data.
- */
-double dotProductEvaluationFunction(const ParamMatrix &params, const XRow &x) {
-    return params[0] * x[0] + params[1] * x[1] + params[2] * x[2];
-}
-
 
 /**
  * An arbitrary (meaningless) nonlinear function for demonstration purposes. We will
  * fit this nonlinear function using LM-optimization
  */
 double evaluationFunction(const ParamMatrix &params, const XRow &x) {
-    return x[0] * params[0] / params[1] + dotProductEvaluationFunction(params, x) + exp(
+    return x[0] * params[0] / params[1] + params.dot(x) + exp(
         (params[0] - params[1] + x[1]) / 30
     );
 }
