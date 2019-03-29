@@ -3,8 +3,9 @@
 
 #include <Eigen/Core>
 
-template<int M, int N>
-class DataManipulator {
+template <int M, int N>
+class DataManipulator
+{
 public:
     virtual ~DataManipulator() = default;
 
@@ -14,6 +15,5 @@ public:
     virtual void fillJacobian(JacobianMatrix &jacobian, ParamMatrix &param) const = 0;
     virtual void fillResiduals(ResidualMatrix &residuals, ParamMatrix &params) const = 0;
 };
-
 
 #endif

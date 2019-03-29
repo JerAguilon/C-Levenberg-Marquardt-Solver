@@ -12,7 +12,7 @@
 #include "solver/DataManipulator.h"
 
 const int M = 7000; // Number of measurements
-const int N = 3; // Number of parameters: a, b, c
+const int N = 3;    // Number of parameters: a, b, c
 
 using Solver = LightLevenbergMarquardtOptimizer<M, N>;
 using JacobianMatrix = Solver::JacobianMatrix;
@@ -21,39 +21,40 @@ using XRow = Eigen::Matrix<double, N, 1>;
 using XMatrix = Eigen::Map<Eigen::Matrix<double, M, N, Eigen::RowMajor>>;
 using YMatrix = Eigen::Map<Eigen::Matrix<double, M, 1>>;
 
-
 /**
  * An arbitrary (meaningless) nonlinear function for demonstration purposes. We will
  * fit this nonlinear function using LM-optimization
  */
-double evaluationFunction(const ParamMatrix &params, const XRow &x) {
-    return x[0] * params[0] / params[1] + params.dot(x) + exp(
-        (params[0] - params[1] + x[1]) / 30
-    );
+double evaluationFunction(const ParamMatrix &params, const XRow &x)
+{
+    return x[0] * params[0] / params[1] + params.dot(x) + exp((params[0] - params[1] + x[1]) / 30);
 }
-
 
 /**
  * This is an implementation of a class that is fed to the LM Solver.
  * It simply implements the logic to fill out a jacobian matrix
  * and a residual matrix, which GTSAM uses to calculate residuals.
  */
-class MyManipulator : public DataManipulator<M, N> {
-public:
-    MyManipulator(double (&x)[M][N], double (&y)[M]):
-        x(&x[0][0], M, N),
-        y(&y[0], M, 1)
-    {}
+class MyManipulator : public DataManipulator<M, N>
+{
+  public:
+    MyManipulator(double (&x)[M][N], double (&y)[M]) : x(&x[0][0], M, N),
+                                                       y(&y[0], M, 1)
+    {
+    }
 
     /**
      * Fills the jacobian matrix from first principles. Computing a derivative
      * analytically would speed up this operation.
      */
-    void fillJacobian(JacobianMatrix &jacobian, ParamMatrix &params) const override {
+    void fillJacobian(JacobianMatrix &jacobian, ParamMatrix &params) const override
+    {
         float epsilon = 1e-5f;
         XRow jacobianRow;
-        for (int m = 0; m < M; m++) {
-            for (int iParam = 0; iParam < 3; iParam++) {
+        for (int m = 0; m < M; m++)
+        {
+            for (int iParam = 0; iParam < 3; iParam++)
+            {
                 double currParam = params[iParam];
 
                 double paramPlus = currParam + epsilon;
@@ -78,25 +79,27 @@ public:
     /**
      * Fills a residual matrix with according to the evaluation function.
      */
-    void fillResiduals(ResidualMatrix &residuals, ParamMatrix &params) const override {
-        for (int i = 0; i < M; i++) {
+    void fillResiduals(ResidualMatrix &residuals, ParamMatrix &params) const override
+    {
+        for (int i = 0; i < M; i++)
+        {
             double residual = evaluationFunction(params, x.row(i)) - y[i];
             residuals(i) = residual;
         }
     };
-private:
+
+  private:
     XMatrix x;
     YMatrix y;
-
 };
-
 
 /**
  * Generates N (N=3 for this demo) random parameters and uses them to create
  * M points with some Gaussian noise. Fiddle with the noise
  * and notice how the final error increases when the noise increases
  */
-void generatePoints(double (&xValues)[M][N], double (&yValues)[M], double(&oracleParams)[N]) {
+void generatePoints(double (&xValues)[M][N], double (&yValues)[M], double (&oracleParams)[N])
+{
     unsigned seed = std::chrono::system_clock::now().time_since_epoch().count();
 
     std::default_random_engine generator(seed);
@@ -116,11 +119,13 @@ void generatePoints(double (&xValues)[M][N], double (&yValues)[M], double(&oracl
     ParamMatrix parameters(&paramArr[0], N, 1);
 
     std::cout << "Randomly Generated Params" << std::endl;
-    std::cout <<  "\t a:" << a << std::endl;
-    std::cout <<  "\t b:" << b << std::endl;
-    std::cout <<  "\t c:" << c << std::endl << std::endl;
+    std::cout << "\t a:" << a << std::endl;
+    std::cout << "\t b:" << b << std::endl;
+    std::cout << "\t c:" << c << std::endl
+              << std::endl;
 
-    for (int i = 0; i < M; i++) {
+    for (int i = 0; i < M; i++)
+    {
         double x = xCoords(generator);
         double x2 = x * x + xNoise(generator);
         double x1 = x + xNoise(generator);
@@ -138,7 +143,8 @@ void generatePoints(double (&xValues)[M][N], double (&yValues)[M], double(&oracl
     }
 }
 
-int main() {
+int main()
+{
 
     // Generate random points to fit
     double oracleParams[N] = {0}; // The actual parameters used to generate the points
@@ -153,10 +159,8 @@ int main() {
     double initialParams[N] = {
         oracleParams[0] + paramDistribution(generator),
         oracleParams[1] + paramDistribution(generator),
-        oracleParams[2] + paramDistribution(generator)
-    };
+        oracleParams[2] + paramDistribution(generator)};
     double *initialParamsPtr = initialParams;
-
 
     // Create our data manipulator, which is used to feed the jacobian and residuals
     // to the LM solver
@@ -168,7 +172,8 @@ int main() {
     Eigen::internal::set_is_malloc_allowed(false);
     Solver mysolver(manipulator, initialParams);
     bool result = mysolver.fit();
-    std::cout << "Fit success: " <<  result << std::endl;;
+    std::cout << "Fit success: " << result << std::endl;
+    ;
     Eigen::internal::set_is_malloc_allowed(true);
 
     std::cout << "Opt result" << std::endl;
@@ -176,7 +181,7 @@ int main() {
     std::cout << "\tb: " << initialParams[1] << std::endl;
     std::cout << "\tc: " << initialParams[2] << std::endl;
     std::cout << "Error from oracle" << std::endl;
-    std::cout << "\ta: " << oracleParams[0] - initialParams[0]  << std::endl;
-    std::cout << "\tb: " << oracleParams[1] - initialParams[1]  << std::endl;
-    std::cout << "\tc: " << oracleParams[2] - initialParams[2]  << std::endl;
+    std::cout << "\ta: " << oracleParams[0] - initialParams[0] << std::endl;
+    std::cout << "\tb: " << oracleParams[1] - initialParams[1] << std::endl;
+    std::cout << "\tc: " << oracleParams[2] - initialParams[2] << std::endl;
 }
