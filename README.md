@@ -6,6 +6,13 @@ It comes with a demonstration fitting an arbitrary nonlinear function. This is a
 for [GTSAM](https://bitbucket.org/gtborg/gtsam/), a smoothing and mapping library as a 
 part of my undergraduate research.
 
+# How does it work?
+
+As a consumer of the optimizer engine, you simply need to implement the `DataManipulator` class.
+The class is used to fill out a jacobian and a residual matrix belonging to the optimizer.
+The optimizer does not care what data it's fitting, just that the manipulator fills the
+aforementioned matrices.
+
 # Dependencies
 
 * [Eigen 3.3](http://eigen.tuxfamily.org/index.php?title=3.3) 
