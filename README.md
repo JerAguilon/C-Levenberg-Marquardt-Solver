@@ -1,9 +1,17 @@
-# Malloc-Free-Levenberg-Marquardt
+# Lightweight Levenberg Marquardt
 
 This is a malloc-free Levenberg-Marquardt optimizer for nonlinear least squares regression.
+This means that heap objects ar enever allocated during the optimization phase.
 It comes with a demonstration fitting an arbitrary nonlinear function. This is a subproject
 for [GTSAM](https://bitbucket.org/gtborg/gtsam/), a smoothing and mapping library as a 
 part of my undergraduate research.
+
+# How does it work?
+
+As a consumer of the optimizer engine, you simply need to implement the `DataManipulator` class.
+The class is used to fill out a jacobian and a residual matrix belonging to the optimizer.
+The optimizer does not care what data it's fitting, just that the manipulator fills the
+aforementioned matrices.
 
 # Dependencies
 
