@@ -37,6 +37,19 @@ private:
 
     double (&_parameters)[RowsParams];
 
+
+    #ifdef OPTIMIZER_USE_STATIC_MEMORY
+    static double (_residuals)[RowsMeasurements];
+
+    static double _hessian[RowsParams][RowsParams],
+           _lowerTriangle[RowsParams][RowsParams];
+
+    static double _derivative[RowsParams],
+           _jacobianMatrix[RowsMeasurements][RowsParams];
+
+    static double _newParameters[RowsParams],
+                  _delta[RowsParams];
+    #else
     double (_residuals)[RowsMeasurements];
 
     double _hessian[RowsParams][RowsParams],
@@ -47,15 +60,47 @@ private:
 
     double _newParameters[RowsParams],
            _delta[RowsParams];
+    #endif
 
     double getError(ResidualMatrix residuals);
 };
+
+// Useful for large matrices that could cause a stack overflow. Alternatively, allocate this object in the heap,
+// although that somewhat breaks the malloc-free paradigm.
+#ifdef OPTIMIZER_USE_STATIC_MEMORY
+
+template<int RowsMeasurements, int RowsParameters>
+double LightLevenbergMarquardtOptimizer<RowsMeasurements, RowsParameters>::_residuals[RowsMeasurements] =  { 0 };
+
+template<int RowsMeasurements, int RowsParameters>
+double LightLevenbergMarquardtOptimizer<RowsMeasurements, RowsParameters>::_hessian[RowsParameters][RowsParameters] =  { 0 };
+
+template<int RowsMeasurements, int RowsParameters>
+double LightLevenbergMarquardtOptimizer<RowsMeasurements, RowsParameters>::_lowerTriangle[RowsParameters][RowsParameters] =  { 0 };
+
+template<int RowsMeasurements, int RowsParameters>
+double LightLevenbergMarquardtOptimizer<RowsMeasurements, RowsParameters>::_derivative[RowsParameters] =  { 0 };
+
+template<int RowsMeasurements, int RowsParameters>
+double LightLevenbergMarquardtOptimizer<RowsMeasurements, RowsParameters>::_jacobianMatrix[RowsMeasurements][RowsParameters] =  { 0 };
+
+template<int RowsMeasurements, int RowsParameters>
+double LightLevenbergMarquardtOptimizer<RowsMeasurements, RowsParameters>::_newParameters[RowsParameters] =  { 0 };
+
+template<int RowsMeasurements, int RowsParameters>
+double LightLevenbergMarquardtOptimizer<RowsMeasurements, RowsParameters>::_delta[RowsParameters] =  { 0 };
+
+#endif
 
 template<int RowsMeasurements, int RowsParameters>
 LightLevenbergMarquardtOptimizer<RowsMeasurements, RowsParameters>::LightLevenbergMarquardtOptimizer(
     const DataManipulator<RowsMeasurements, RowsParameters> &dataManipulator,
     double (&initialParams)[RowsParameters]
 ):
+    #ifdef OPTIMIZER_USE_STATIC_MEMORY
+    dataManipulator(dataManipulator),
+    _parameters(initialParams)
+    #else
     dataManipulator(dataManipulator),
     _parameters(initialParams),
     _hessian{},
@@ -64,6 +109,7 @@ LightLevenbergMarquardtOptimizer<RowsMeasurements, RowsParameters>::LightLevenbe
     _delta{},
     _residuals{},
     _newParameters{}
+    #endif
 {}
 
 /**

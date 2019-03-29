@@ -6,6 +6,8 @@
 template<int M, int N>
 class DataManipulator {
 public:
+    virtual ~DataManipulator() = default;
+
     typedef Eigen::Map<Eigen::Matrix<double, N, 1>> ParamMatrix;
     typedef Eigen::Map<Eigen::Matrix<double, M, 1>> ResidualMatrix;
     typedef Eigen::Map<Eigen::Matrix<double, M, N, Eigen::RowMajor>> JacobianMatrix;
