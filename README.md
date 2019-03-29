@@ -1,7 +1,7 @@
 # Lightweight Levenberg Marquardt
 
 This is a malloc-free Levenberg-Marquardt optimizer for nonlinear least squares regression.
-This means that heap objects ar enever allocated during the optimization phase.
+This means that heap objects are never allocated during the optimization phase.
 It comes with a demonstration fitting an arbitrary nonlinear function. This is a subproject
 for [GTSAM](https://bitbucket.org/gtborg/gtsam/), a smoothing and mapping library as a 
 part of my undergraduate research.
