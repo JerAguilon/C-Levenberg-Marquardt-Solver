@@ -49,12 +49,6 @@ private:
            _delta[RowsParams];
 
     double getError(ResidualMatrix residuals);
-
-    void solveCholesky(
-        SquareParamMatrix &choleskyDecomposition,
-        ParamMatrix &derivative,
-        ParamMatrix &delta
-    );
 };
 
 template<int RowsMeasurements, int RowsParameters>
@@ -151,7 +145,7 @@ bool LightLevenbergMarquardtOptimizer<RowsMeasurements, RowsParameters>::fit() {
             // The decoposition fails if the matrix is not positive semi definite
             illConditioned = (llt.info() != Eigen::ComputationInfo::Success);
             if (!illConditioned) {
-                solveCholesky(lowerTriangle, derivative, delta);
+                delta = llt.solve(derivative);
                 for (int i = 0; i < RowsParameters; i++) {
                     newParameters(i) = parameters(i) + delta(i);
                 }
@@ -184,39 +178,6 @@ bool LightLevenbergMarquardtOptimizer<RowsMeasurements, RowsParameters>::fit() {
     std::cout << "Mean Error: " << currentError / RowsMeasurements << std::endl;
     std::cout << "Total iterations: " << iteration + 1 << std::endl << std::endl;
     return success;
-}
-
-
-/**
- * Solves an L*L^T decomposed hessian matrix and stores the result into
- * delta
- */
-template<int RowsMeasurements, int RowsParameters>
-void LightLevenbergMarquardtOptimizer<RowsMeasurements, RowsParameters>::solveCholesky(
-    SquareParamMatrix &choleskyDecomposition,
-    ParamMatrix &derivative,
-    ParamMatrix &delta
-) {
-    int i, j;
-    double sum;
-
-    int n = RowsParameters;
-
-    for (i = 0; i < n; i++) {
-        sum = 0;
-        for (j = 0; j < i; j++) {
-            sum += choleskyDecomposition(i, j) * delta(j);
-        }
-        delta(j) = (derivative(i) - sum) / choleskyDecomposition(i, i);
-    }
-
-    for (i = n - 1; i >= 0; i--) {
-        sum = 0;
-        for (j = i + 1; j < n; j++) {
-            sum += choleskyDecomposition(j, i) * delta(j);
-        }
-        delta(i) = (delta(i) - sum) / choleskyDecomposition(i, i);
-    }
 }
 
 #endif
