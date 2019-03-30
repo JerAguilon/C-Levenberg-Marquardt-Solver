@@ -9,16 +9,30 @@
 #include "DataManipulator.h"
 
 /**
- *  Solves the equation X[NumMeasurements _x RowsParam] * P[RowsParam] = Y[NumMeasurements]
+ * This engine solves a nonlinear system without any mallocs. Its only dependency is Eigen,
+ * and as such, this should be viewed as a low-level backend to an optimizer.
+ *
+ * A user of this should implement a DataManipulator. The engine will request the DataManipulator
+ * to fill in its jacobian matrix and residual vector.
+ *
+ * If large arrays are required, this could cause stack overflows. Users can enable the
+ * LIGHT_LM_ENGINE_USE_STATIC_MEMORY flag to have variables alloated in static memory.
+ * Enabling this makes this implementation extremely un-threadsafe, since all instance
+ * of LightLevenbergMarquardtEngine<M, N> will share the same block for calculations.
+ * Alternatively, the optimizer can be allocated on the heap, and you will at least
+ * get the benefit of having no mallocs during the fitting.
+ *
+ * TODO: For now, the engine can only solve problem sizes of exactly
+ * NumMeasurements x NumParameters. It should be possible to set it to solve
+ * smaller problems than the set value, still without mallocs.
  */
 template <int NumMeasurements, int NumParameters>
 class LightLevenbergMarquardtOptimizer
 {
 
 public:
-    typedef Eigen::Map<Eigen::Matrix<double, -1, 1>> ParamMatrix;
-    typedef Eigen::Map<Eigen::Matrix<double, -1, -1>> JacobianMatrix;
-    typedef Eigen::Map<Eigen::Matrix<double, -1, 1>> ResidualMatrix;
+    typedef Eigen::Map<Eigen::Matrix<double, -1, 1>> VectorMap;
+    typedef Eigen::Map<Eigen::Matrix<double, -1, -1>> MatrixMap;
 
     const DataManipulator<NumMeasurements, NumParameters> &dataManipulator;
 
@@ -60,7 +74,7 @@ protected:
         _delta[NumParameters];
 #endif
 
-    double getError(ResidualMatrix residuals);
+    double getError(VectorMap residuals);
 };
 
 #ifdef OPTIMIZER_USE_STATIC_MEMORY
@@ -112,7 +126,7 @@ LightLevenbergMarquardtOptimizer<NumMeasurements, NumParameters>::LightLevenberg
  * configuration.
  */
 template <int NumMeasurements, int NumParameters>
-double LightLevenbergMarquardtOptimizer<NumMeasurements, NumParameters>::getError(ResidualMatrix residuals)
+double LightLevenbergMarquardtOptimizer<NumMeasurements, NumParameters>::getError(VectorMap residuals)
 {
     return (residuals.transpose() * residuals)(0, 0);
 }
@@ -125,18 +139,18 @@ bool LightLevenbergMarquardtOptimizer<NumMeasurements, NumParameters>::fit()
 {
     bool success = false;
 
-    ParamMatrix parameters(&_parameters[0], NumParameters, 1);
-    ParamMatrix newParameters(&_newParameters[0], NumParameters, 1);
+    VectorMap parameters(&_parameters[0], NumParameters, 1);
+    VectorMap newParameters(&_newParameters[0], NumParameters, 1);
 
-    ResidualMatrix residuals(&_residuals[0], NumMeasurements, 1);
+    VectorMap residuals(&_residuals[0], NumMeasurements, 1);
 
-    ParamMatrix derivative(&_derivative[0], NumParameters);
-    ParamMatrix delta(&_delta[0], NumParameters);
+    VectorMap derivative(&_derivative[0], NumParameters);
+    VectorMap delta(&_delta[0], NumParameters);
 
     SquareParamMatrix hessian(&_hessian[0], NumParameters, NumParameters);
     SquareParamMatrix lowerTriangle(&_lowerTriangle[0], NumParameters, NumParameters);
 
-    JacobianMatrix jacobianMatrix(&_jacobianMatrix[0], NumMeasurements, NumParameters);
+    MatrixMap jacobianMatrix(&_jacobianMatrix[0], NumMeasurements, NumParameters);
 
     // TODO: make these input arguments
     int maxIterations = 500;

@@ -15,8 +15,8 @@ const int M = 7000; // Number of measurements
 const int N = 3;    // Number of parameters: a, b, c
 
 using Solver = LightLevenbergMarquardtOptimizer<M, N>;
-using JacobianMatrix = Solver::JacobianMatrix;
-using ParamMatrix = Solver::ParamMatrix;
+using MatrixMap = Solver::MatrixMap;
+using VectorMap = Solver::VectorMap;
 using XRow = Eigen::Matrix<double, N, 1>;
 using XMatrix = Eigen::Map<Eigen::Matrix<double, M, N, Eigen::RowMajor>>;
 using YMatrix = Eigen::Map<Eigen::Matrix<double, M, 1>>;
@@ -116,7 +116,7 @@ void generatePoints(double (&xValues)[M][N], double (&yValues)[M], double (&orac
     oracleParams[2] = c;
 
     double paramArr[N] = {a, b, c};
-    ParamMatrix parameters(&paramArr[0], N, 1);
+    VectorMap parameters(&paramArr[0], N, 1);
 
     std::cout << "Randomly Generated Params" << std::endl;
     std::cout << "\t a:" << a << std::endl;
