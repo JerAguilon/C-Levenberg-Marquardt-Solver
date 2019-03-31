@@ -174,7 +174,6 @@ int main()
     Solver mysolver(manipulator, initialParams);
     bool result = mysolver.fit();
     std::cout << "Fit success: " << result << std::endl;
-    ;
     Eigen::internal::set_is_malloc_allowed(true);
 
     std::cout << "Opt result" << std::endl;
