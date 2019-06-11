@@ -181,8 +181,7 @@ bool LightLevenbergMarquardtOptimizer<NumMeasurements, NumParameters>::fit() {
   double *paramPtr = parameters.data();
   double *jacobianPtr = jacobianMatrix.data();
 
-  dataManipulator.fillResiduals(residualsPtr, paramPtr, NumMeasurements,
-                                NumParameters);
+  dataManipulator.fillResiduals(NumMeasurements, NumParameters, residualsPtr, paramPtr);
   double currentError = getError(residuals);
 
   int iteration;
@@ -197,8 +196,7 @@ bool LightLevenbergMarquardtOptimizer<NumMeasurements, NumParameters>::fit() {
 
     // Build out the jacobian and the hessian matrices
     // H = J^T * J
-    dataManipulator.fillJacobian(jacobianPtr, paramPtr, NumMeasurements,
-                                 NumParameters);
+    dataManipulator.fillJacobian(NumMeasurements, NumParameters, jacobianPtr, paramPtr);
     hessian.noalias() = jacobianMatrix.transpose() * jacobianMatrix;
 
     // Compute the right hand side of the update equation:
@@ -229,8 +227,7 @@ bool LightLevenbergMarquardtOptimizer<NumMeasurements, NumParameters>::fit() {
         for (int i = 0; i < NumParameters; i++) {
           newParameters(i) = parameters(i) + delta(i);
         }
-        dataManipulator.fillResiduals(residualsPtr, newParamPtr,
-                                      NumMeasurements, NumParameters);
+        dataManipulator.fillResiduals(NumMeasurements, NumParameters, residualsPtr, newParamPtr);
         newError = getError(residuals);
         deltaError = newError - currentError;
         illConditioned = deltaError > 0;

@@ -14,22 +14,20 @@ class DataManipulator {
   typedef Eigen::Map<Eigen::MatrixXd> MatrixMap;
   typedef Eigen::Map<Eigen::VectorXd> VectorMap;
 
-  virtual void fillJacobian(MatrixMap &jacobian, VectorMap &params, int m,
-                            int n) const = 0;
-  virtual void fillResiduals(VectorMap &residuals, VectorMap &params, int m,
-                             int n) const = 0;
+  virtual void fillJacobian(
+          const int m, const int n, MatrixMap *jacobian, VectorMap *params) const = 0;
+  virtual void fillResiduals(
+          const int m, const int n, VectorMap *residuals, VectorMap *params) const = 0;
 
-  virtual void fillJacobian(double *jacobian, double *params, int m,
-                            int n) const {
+  virtual void fillJacobian(const int m, const int n, double *jacobian, double *params) const {
     MatrixMap j(&jacobian[0], m, n);
     VectorMap p(&params[0], n, 1);
-    fillJacobian(j, p, m, n);
+    fillJacobian(m, n, &j, &p);
   }
 
-  virtual void fillResiduals(double *residuals, double *params, int m,
-                             int n) const {
+  virtual void fillResiduals(const int m, const int n, double *residuals, double *params) const {
     VectorMap r(&residuals[0], m, 1);
     VectorMap p(&params[0], n, 1);
-    fillResiduals(r, p, m, n);
+    fillResiduals(m, n, &r, &p);
   }
 };

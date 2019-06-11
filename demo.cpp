@@ -47,7 +47,11 @@ class MyManipulator : public DataManipulator<M, N>
      * Fills the jacobian matrix from first principles. Computing a derivative
      * analytically would speed up this operation.
      */
-    void fillJacobian(DataManipulator<M,N>::MatrixMap &jacobian, DataManipulator<M,N>::VectorMap &params, int numMeasurements, int numParams) const override
+    void fillJacobian(
+        const int numMeasurements,
+        const int numParams,
+        DataManipulator<M,N>::MatrixMap *jacobian,
+        DataManipulator<M,N>::VectorMap *params) const override
     {
         float epsilon = 1e-5f;
         XRow jacobianRow;
@@ -55,36 +59,41 @@ class MyManipulator : public DataManipulator<M, N>
         {
             for (int iParam = 0; iParam < numParams; iParam++)
             {
-                double currParam = params[iParam];
+                auto paramsDeref = *params;
+                double currParam = paramsDeref[iParam];
 
                 double paramPlus = currParam + epsilon;
                 double paramMinus = currParam - epsilon;
 
-                params[iParam] = paramPlus;
-                double evalPlus = evaluationFunction(params, x.row(m));
+                paramsDeref[iParam] = paramPlus;
+                double evalPlus = evaluationFunction(paramsDeref, x.row(m));
 
-                params[iParam] = paramMinus;
-                double evalMinus = evaluationFunction(params, x.row(m));
+                paramsDeref[iParam] = paramMinus;
+                double evalMinus = evaluationFunction(paramsDeref, x.row(m));
 
-                params[iParam] = currParam;
+                paramsDeref[iParam] = currParam;
 
                 double derivative = (evalPlus - evalMinus) / (2 * epsilon);
 
                 jacobianRow[iParam] = derivative;
             }
-            jacobian.row(m).noalias() = jacobianRow;
+            jacobian->row(m).noalias() = jacobianRow;
         }
     }
 
     /**
      * Fills a residual matrix with according to the evaluation function.
      */
-    void fillResiduals(DataManipulator<M,N>::VectorMap &residuals, DataManipulator<M,N>::VectorMap &params, int residualSize, int paramSize) const override
+    void fillResiduals(
+        const int residualSize,
+        const int paramSize, 
+        DataManipulator<M,N>::VectorMap *residuals, 
+        DataManipulator<M,N>::VectorMap *params) const override
     {
         for (int i = 0; i < residualSize; i++)
         {
-            double residual = evaluationFunction(params, x.row(i)) - y[i];
-            residuals(i) = residual;
+            double residual = evaluationFunction(*params, x.row(i)) - y[i];
+            (*residuals)(i) = residual;
         }
     };
 
