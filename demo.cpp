@@ -47,7 +47,11 @@ class MyManipulator : public DataManipulator<M, N>
      * Fills the jacobian matrix from first principles. Computing a derivative
      * analytically would speed up this operation.
      */
-    void fillJacobian(const int numMeasurements, const int numParams, DataManipulator<M,N>::MatrixMap *jacobian, DataManipulator<M,N>::VectorMap *params) const override
+    void fillJacobian(
+        const int numMeasurements,
+        const int numParams,
+        DataManipulator<M,N>::MatrixMap *jacobian,
+        DataManipulator<M,N>::VectorMap *params) const override
     {
         float epsilon = 1e-5f;
         XRow jacobianRow;
@@ -80,7 +84,11 @@ class MyManipulator : public DataManipulator<M, N>
     /**
      * Fills a residual matrix with according to the evaluation function.
      */
-    void fillResiduals(const int residualSize, const int paramSize, DataManipulator<M,N>::VectorMap *residuals, DataManipulator<M,N>::VectorMap *params) const override
+    void fillResiduals(
+        const int residualSize,
+        const int paramSize, 
+        DataManipulator<M,N>::VectorMap *residuals, 
+        DataManipulator<M,N>::VectorMap *params) const override
     {
         for (int i = 0; i < residualSize; i++)
         {
